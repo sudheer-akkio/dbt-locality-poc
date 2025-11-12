@@ -72,7 +72,7 @@ sources:
           directly measure ad performance.
 
 models:
-  - name: my_first_dbt_model
+  - name: v_akkio_attributes_latest
     description: "A starter dbt model"
     columns:
       - name: id
@@ -81,8 +81,17 @@ models:
           - unique
           - not_null
 
-  - name: my_second_dbt_model
+  - name: locality_campaign_exposure
     description: "A starter dbt model"
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        data_tests:
+          - unique
+          - not_null
+          
+  - name: akkio_segments
+    description: "View of the AKKIO segments"
     columns:
       - name: id
         description: "The primary key for this table"
