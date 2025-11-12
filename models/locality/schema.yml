@@ -1,0 +1,91 @@
+
+version: 2
+
+sources:
+  - name: locality_poc_share_gold
+    database: locality-poc-share
+    schema: gold
+    tables:
+      - name: freewheel_logs_gold
+        description: Freewheel logs gold table
+
+  - name: locality_poc_share_silver
+    database: locality-poc-share
+    schema: silver
+    tables:
+      - name: datonics_ids
+        description: >
+          This table consolidates all of the Datonics segment definitions 
+          across all of the various identifier types.
+      - name: datonics_segments
+        description: >
+          This table provides information about the segments defined in the 
+          datonics_ids table. It was manually uploaded from a Datonics-provided 
+          Excel document, representing the small sample of segments for 
+          Locality to evaluate against FreeWheel.
+      - name: deepsync_consolidated_id_map
+        description: >
+          Mapping table connecting DeepSync IDs and Household IDs to all types 
+          of identities, including IP addresses, MAIDs, and CTV IDs.
+      - name: deepsync_consumer_attribute_silver
+        description: >
+          The table contains demographic and lifestyle information about individuals. 
+          It includes data like dwelling types, presence of children in various age 
+          groups, and interests such as reading, camping, and pet ownership. 
+          It contains processes for normalization, mapping, and data transformation.
+      - name: experian_consolidated_id_map
+        description: >
+          The table contains information linking digital households to their 
+          corresponding offline households. It includes attributes such as unique 
+          identifiers for digital households, generalized identities like IP 
+          addresses or device IDs, and the type of identity used. This data can 
+          be useful for analyzing the relationship between digital and offline 
+          consumer behaviors, enhancing targeted marketing strategies, and 
+          improving customer segmentation.
+      - name: experian_consumerview
+        description: >
+          The table contains data on various household types and their characteristics, 
+          particularly focusing on renters and homeowners. It includes information on 
+          demographics, living preferences, and estimated income ranges. Possible use 
+          cases include targeting marketing strategies for specific demographics, 
+          understanding rental market trends, and tailoring products and services to 
+          different household types.
+      - name: freewheel_placement_mapping
+        description: >
+          Contains information about the CTV advertising campaigns managed by 
+          Locality in FreeWheel. It includes details such as the campaign and 
+          placement IDs, their corresponding names, advertiser category, and 
+          date ranges. This data can be used to track the performance of campaigns, 
+          analyze the effectiveness of different placement types, and compare the 
+          success of campaigns across different categories. This table joins to 
+          the Locality Logs table via the fw_placement_id column, which should 
+          match the PlacementId column in the FreeWheel log tables.
+      - name: inscape_segments
+        description: >
+          Segments of the Inscape audience based on TV Viewing patterns or 
+          Ad Exposure
+      - name: loopme
+        description: >
+          LoopMe provides performance-related data based on Locality's active 
+          campaigns. The combination of Mobile Advertising ID (MAID), IP address, 
+          and timestamp can be matched against Locality's FreeWheel log data to 
+          directly measure ad performance.
+
+models:
+  - name: my_first_dbt_model
+    description: "A starter dbt model"
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        data_tests:
+          - unique
+          - not_null
+
+  - name: my_second_dbt_model
+    description: "A starter dbt model"
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        data_tests:
+          - unique
+          - not_null
