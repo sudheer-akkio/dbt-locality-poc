@@ -74,103 +74,160 @@ sources:
 models:
   - name: v_akkio_attributes_latest
     description: >
-      Household spine with 528 Experian attributes.
-      Rows: 108M | Grain: akkio_id | Refresh: Full (~1 min)
+      Household spine with decoded Experian behavioral attributes and spending patterns.
+      Rows: 108M | Grain: AKKIO_ID | Refresh: Full (~1 min)
+      | :short-name:audience_attributes: :use_for_audience_gen: |<
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - AKKIO_ID
     columns:
-      - name: akkio_id
-        description: "Unique household identifier (derived from hh_id)"
-        data_tests:
+      - name: PARTITION_DATE
+        description: "Current date when model was run | :akkio-context-ignore |<"
+        tests:
+          - not_null
+      - name: AKKIO_ID
+        description: "Unique household identifier | :ID"
+        tests:
           - unique
           - not_null
-      - name: luid
+      - name: LUID
         description: "Linked user ID from Experian (one per household via MIN)"
+      - name: HOUSING_SEGMENT
+        description: "Housing type segment (apartment renter types, homeowner types) | :Demographics :all_unique_values"
+      - name: HOME_OWNERSHIP
+        description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
+      - name: NET_WORTH_K
+        description: "Net worth in thousands (lower bound of bucket) | :Demographics"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100000
+              severity: warn
+      - name: NET_WORTH_BUCKET
+        description: "Net worth bucket code (1-9) | :Demographics"
+      - name: HOUSEHOLD_INCOME_K
+        description: "Estimated household income in thousands (lower bound) | :Demographics"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 5000
+              severity: warn
+      - name: INCOME_BUCKET
+        description: "Income bucket code (1-7) | :Demographics"
+      - name: HIGH_WEALTH_FLAG
+        description: "High wealth indicator (5M+)"
+      - name: EMPLOY_PUBLIC_COMPANY
+        description: "Employed by public traded company flag"
+      - name: EMPLOY_PRIVATE_COMPANY
+        description: "Employed by private held company flag"
+      - name: EXECUTIVE_DECISION_MAKER
+        description: "Executive or decision maker flag"
+      - name: COMPANY_FOUNDER
+        description: "Company founder flag"
+      - name: HIGH_VALUE_STOCK_HOLDER
+        description: "Receives high value stock compensation flag"
+      - name: HOME_SALE_PROPENSITY
+        description: "Likelihood to sell home with timeframe | :all_unique_values"
+      - name: DBT_UPDATED_AT
+        description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
 
   - name: identity_to_akkio_deduped
     description: >
       Deduplicated identity graph for joins (MATERIALIZED TABLE).
       Rows: 1.76B | Refresh: Full (~5-10 min)
       CRITICAL: Must be table not view - referenced 3+ times in downstream models.
-    columns:
-      - name: identity
-        description: "The identity value (IP, MAID, CTV ID, etc)"
-      - name: id_type
-        description: "Type of identity (ip, ctv, idfa, aaid)"
-      - name: akkio_id
-        description: "Associated household ID"
-    data_tests:
+    tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - identity
-            - id_type
-            - akkio_id
+            - IDENTITY
+            - ID_TYPE
+            - AKKIO_ID
+    columns:
+      - name: IDENTITY
+        description: "The identity value (IP, MAID, CTV ID, etc)"
+      - name: ID_TYPE
+        description: "Type of identity | :lower"
+      - name: AKKIO_ID
+        description: "Associated household ID | :ID"
 
   - name: locality_campaign_exposure
     description: >
-      Campaign impressions linked to households.
-      Rows: 2.9B | Grain: (transaction_id, akkio_id) | Partition: exposure_date (monthly)
+      Campaign impressions linked to households from FreeWheel and LoopMe.
+      Rows: 2.9B | Grain: (TRANSACTION_ID, AKKIO_ID) | Partition: EXPOSURE_DATE (monthly)
+      | :short-name:campaign_exposure: |<
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - TRANSACTION_ID
+            - AKKIO_ID
     columns:
-      - name: akkio_id
-        description: "Household identifier"
-        data_tests:
+      - name: AKKIO_ID
+        description: "Household identifier | :ID"
+        tests:
           - not_null
           - relationships:
               to: ref('v_akkio_attributes_latest')
-              field: akkio_id
-      - name: locality_campaign_id
-        description: "Locality campaign identifier"
-      - name: loopme_campaign_id
+              field: AKKIO_ID
+      - name: LOCALITY_CAMPAIGN_ID
+        description: "Locality campaign identifier | :ui-name:Campaign ID:"
+      - name: LOOPME_CAMPAIGN_ID
         description: "LoopMe campaign identifier (if applicable)"
-      - name: fw_campaign_id
+      - name: FW_CAMPAIGN_ID
         description: "FreeWheel campaign identifier (if applicable)"
-      - name: exposure_date
-        description: "Date of the exposure"
-        data_tests:
+      - name: EXPOSURE_DATE
+        description: "Date of the exposure | :ui-name:Exposure Date:"
+        tests:
           - not_null
-      - name: source
-        description: "Source of the exposure (freewheel or loopme)"
-        data_tests:
+      - name: SOURCE
+        description: "Source of the exposure (FreeWheel or LoopMe)"
+        tests:
           - accepted_values:
-              values: ['freewheel', 'loopme']
-      - name: transaction_id
+              values: ['FreeWheel', 'LoopMe']
+      - name: TRANSACTION_ID
         description: "Unique transaction identifier (for FreeWheel exposures)"
-      - name: ip_address
+      - name: IP_ADDRESS
         description: "IP address of the viewer"
-      - name: device_id
+      - name: DEVICE_ID
         description: "Device ID of the viewer"
-      - name: maid
+      - name: LOCALITY_ADVERTISER
+        description: "Locality advertiser name (FreeWheel only)"
+      - name: LOCALITY_CAMPAIGN
+        description: "Locality campaign name (FreeWheel only)"
+      - name: CREATIVE_ID
+        description: "Creative ID (FreeWheel only)"
+      - name: REVENUE
+        description: "Revenue from impression (FreeWheel only)"
+      - name: MAID
         description: "Mobile Advertising ID (for LoopMe exposures)"
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - transaction_id
-            - akkio_id
 
   - name: akkio_segments
     description: >
-      Household segment assignments (Inscape only - Datonics processing disabled).
-      Rows: ~410M (Inscape matched) | Grain: (akkio_id, segment_id, segment_source)
+      Household segment assignments from Inscape (TV viewing and ad exposure patterns).
+      Rows: ~410M | Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE)
       NOTE: Datonics segments skipped due to 609B row source table requiring specialized processing.
-    columns:
-      - name: akkio_id
-        description: "Household identifier"
-        data_tests:
-          - not_null
-      - name: segment_id
-        description: "Segment identifier"
-        data_tests:
-          - not_null
-      - name: segment_name
-        description: "Normalized segment name (lowercase, spaces->hyphens, &->and)"
-      - name: segment_description
-        description: "Segment description (Datonics only)"
-      - name: segment_source
-        description: "Source of the segment (currently inscape only)"
-        data_tests:
-          - accepted_values:
-              values: ['inscape']  # datonics disabled - would add back when processing enabled
-    data_tests:
+      | :short-name:audience_segments: |<
+    tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - akkio_id
-            - segment_id
-            - segment_source
+            - AKKIO_ID
+            - SEGMENT_ID
+            - SEGMENT_SOURCE
+    columns:
+      - name: AKKIO_ID
+        description: "Household identifier | :ID"
+        tests:
+          - not_null
+      - name: SEGMENT_ID
+        description: "Segment identifier"
+        tests:
+          - not_null
+      - name: SEGMENT_NAME
+        description: "Normalized segment name | :lower :space-to-hyphen"
+      - name: SEGMENT_DESCRIPTION
+        description: "Segment description (Datonics only - currently NULL)"
+      - name: SEGMENT_SOURCE
+        description: "Source of the segment | :lower"
+        tests:
+          - accepted_values:
+              values: ['inscape']

@@ -28,43 +28,49 @@ flags:
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models
 
-# In this example config, we tell dbt to build all models in the example/
-# directory as views. These settings can be overridden in the individual model
-# files using the `{{ config(...) }}` macro.
 models:
   locality_poc_databricks:
+    # Default configurations for all models
+    +materialized: table
+    +transient: false
+    +persist_docs:
+      relation: true
+      columns: true
+
     # Config indicated by + and applies to all files under models/example/
     example:
       +materialized: view
-      +transient: false
-      +persist_docs:
-        relation: true
-        columns: true
 
     intermediate:
       +materialized: view
-      +persist_docs:
-        relation: true
-        columns: true
+      +tags:
+        - intermediate
       # int_datonics_ids_matched disabled - 609B rows too large for standard processing
 
     locality:
       +tags:
         - locality
-      +persist_docs:
-        relation: true
-        columns: true
+        - locality_poc
+        - monthly
+      +database: akkio
       v_akkio_attributes_latest:
         +materialized: view
+        +alias: V_AKKIO_ATTRIBUTES_LATEST
       identity_to_akkio_deduped:
         +materialized: table  # MUST be table - reused 3+ times downstream
+        +alias: IDENTITY_TO_AKKIO_DEDUPED
+        +post_hook:
+          - "alter table {{ this }} cluster by (akkio_id)"
       akkio_segments:
         +materialized: incremental
         +unique_key: ['akkio_id', 'segment_id', 'segment_source']
+        +alias: AKKIO_SEGMENTS
+        +post_hook:
+          - "alter table {{ this }} cluster by (akkio_id, segment_source)"
       locality_campaign_exposure:
         +materialized: incremental
         +unique_key: ['transaction_id', 'akkio_id']
-        +partition_by:
-          field: exposure_date
-          data_type: date
-          granularity: month 
+        +partition_by: exposure_date
+        +alias: LOCALITY_CAMPAIGN_EXPOSURE
+        # NOTE: Cannot use clustering on partitioned tables in Databricks
+        # Partitioning by exposure_date provides the performance optimization 
