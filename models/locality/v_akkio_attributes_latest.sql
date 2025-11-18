@@ -1,27 +1,21 @@
+{{
+    config(
+        materialized='view'
+    )
+}}
 
-/*
-    Welcome to your first dbt model!
-    Did you know that you can also configure models directly within SQL files?
-    This will override configurations stated in dbt_project.yml
-
-    Try changing "table" to "view" below
-*/
-
-{{ config(materialized='table') }}
-
-with source_data as (
-
-    select 1 as id
-    union all
-    select null as id
-
+with one_luid_per_household as (
+    select
+        hh_id,
+        min(luid) as luid
+    from {{ source('locality_poc_share_silver', 'experian_consolidated_id_map') }}
+    group by hh_id
 )
 
-select *
-from source_data
-
-/*
-    Uncomment the line below to remove records with null `id` values
-*/
-
--- where id is not null
+select
+    olh.hh_id as akkio_id,
+    olh.luid,
+    e_cv.*
+from one_luid_per_household olh
+left join {{ source('locality_poc_share_silver', 'experian_consumerview') }} e_cv
+    on olh.luid = e_cv.recd_luid

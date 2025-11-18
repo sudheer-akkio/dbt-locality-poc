@@ -40,8 +40,31 @@ models:
       +persist_docs:
         relation: true
         columns: true
-      
-      locality:
-        +tags: 
-          - locality
-        +database: akkio 
+
+    intermediate:
+      +materialized: view
+      +persist_docs:
+        relation: true
+        columns: true
+      # int_datonics_ids_matched disabled - 609B rows too large for standard processing
+
+    locality:
+      +tags:
+        - locality
+      +persist_docs:
+        relation: true
+        columns: true
+      v_akkio_attributes_latest:
+        +materialized: view
+      identity_to_akkio_deduped:
+        +materialized: table  # MUST be table - reused 3+ times downstream
+      akkio_segments:
+        +materialized: incremental
+        +unique_key: ['akkio_id', 'segment_id', 'segment_source']
+      locality_campaign_exposure:
+        +materialized: incremental
+        +unique_key: ['transaction_id', 'akkio_id']
+        +partition_by:
+          field: exposure_date
+          data_type: date
+          granularity: month 

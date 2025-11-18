@@ -7,7 +7,7 @@ sources:
     schema: gold
     tables:
       - name: freewheel_logs_gold
-        description: Freewheel logs gold table
+        description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
     database: locality-poc-share
@@ -15,86 +15,162 @@ sources:
     tables:
       - name: datonics_ids
         description: >
-          This table consolidates all of the Datonics segment definitions 
-          across all of the various identifier types.
+          This table consolidates all of the Datonics segment definitions
+          across all of the various identifier types. (609B rows)
       - name: datonics_segments
         description: >
-          This table provides information about the segments defined in the 
-          datonics_ids table. It was manually uploaded from a Datonics-provided 
-          Excel document, representing the small sample of segments for 
-          Locality to evaluate against FreeWheel.
+          This table provides information about the segments defined in the
+          datonics_ids table. It was manually uploaded from a Datonics-provided
+          Excel document, representing the small sample of segments for
+          Locality to evaluate against FreeWheel. (1,191 segments)
       - name: deepsync_consolidated_id_map
         description: >
-          Mapping table connecting DeepSync IDs and Household IDs to all types 
+          Mapping table connecting DeepSync IDs and Household IDs to all types
           of identities, including IP addresses, MAIDs, and CTV IDs.
       - name: deepsync_consumer_attribute_silver
         description: >
-          The table contains demographic and lifestyle information about individuals. 
-          It includes data like dwelling types, presence of children in various age 
-          groups, and interests such as reading, camping, and pet ownership. 
+          The table contains demographic and lifestyle information about individuals.
+          It includes data like dwelling types, presence of children in various age
+          groups, and interests such as reading, camping, and pet ownership.
           It contains processes for normalization, mapping, and data transformation.
       - name: experian_consolidated_id_map
         description: >
-          The table contains information linking digital households to their 
-          corresponding offline households. It includes attributes such as unique 
-          identifiers for digital households, generalized identities like IP 
-          addresses or device IDs, and the type of identity used. This data can 
-          be useful for analyzing the relationship between digital and offline 
-          consumer behaviors, enhancing targeted marketing strategies, and 
-          improving customer segmentation.
+          The table contains information linking digital households to their
+          corresponding offline households. It includes attributes such as unique
+          identifiers for digital households, generalized identities like IP
+          addresses or device IDs, and the type of identity used. This data can
+          be useful for analyzing the relationship between digital and offline
+          consumer behaviors, enhancing targeted marketing strategies, and
+          improving customer segmentation. (7.9B rows)
       - name: experian_consumerview
         description: >
-          The table contains data on various household types and their characteristics, 
-          particularly focusing on renters and homeowners. It includes information on 
-          demographics, living preferences, and estimated income ranges. Possible use 
-          cases include targeting marketing strategies for specific demographics, 
-          understanding rental market trends, and tailoring products and services to 
-          different household types.
+          The table contains data on various household types and their characteristics,
+          particularly focusing on renters and homeowners. It includes information on
+          demographics, living preferences, and estimated income ranges. Possible use
+          cases include targeting marketing strategies for specific demographics,
+          understanding rental market trends, and tailoring products and services to
+          different household types. (288M rows, 528 columns)
       - name: freewheel_placement_mapping
         description: >
-          Contains information about the CTV advertising campaigns managed by 
-          Locality in FreeWheel. It includes details such as the campaign and 
-          placement IDs, their corresponding names, advertiser category, and 
-          date ranges. This data can be used to track the performance of campaigns, 
-          analyze the effectiveness of different placement types, and compare the 
-          success of campaigns across different categories. This table joins to 
-          the Locality Logs table via the fw_placement_id column, which should 
+          Contains information about the CTV advertising campaigns managed by
+          Locality in FreeWheel. It includes details such as the campaign and
+          placement IDs, their corresponding names, advertiser category, and
+          date ranges. This data can be used to track the performance of campaigns,
+          analyze the effectiveness of different placement types, and compare the
+          success of campaigns across different categories. This table joins to
+          the Locality Logs table via the fw_placement_id column, which should
           match the PlacementId column in the FreeWheel log tables.
       - name: inscape_segments
         description: >
-          Segments of the Inscape audience based on TV Viewing patterns or 
-          Ad Exposure
+          Segments of the Inscape audience based on TV Viewing patterns or
+          Ad Exposure (692M rows)
       - name: loopme
         description: >
-          LoopMe provides performance-related data based on Locality's active 
-          campaigns. The combination of Mobile Advertising ID (MAID), IP address, 
-          and timestamp can be matched against Locality's FreeWheel log data to 
-          directly measure ad performance.
+          LoopMe provides performance-related data based on Locality's active
+          campaigns. The combination of Mobile Advertising ID (MAID), IP address,
+          and timestamp can be matched against Locality's FreeWheel log data to
+          directly measure ad performance. (7.4M rows)
 
 models:
   - name: v_akkio_attributes_latest
-    description: "A starter dbt model"
+    description: >
+      Household spine with 528 Experian attributes.
+      Rows: 108M | Grain: akkio_id | Refresh: Full (~1 min)
     columns:
-      - name: id
-        description: "The primary key for this table"
+      - name: akkio_id
+        description: "Unique household identifier (derived from hh_id)"
         data_tests:
           - unique
           - not_null
+      - name: luid
+        description: "Linked user ID from Experian (one per household via MIN)"
+
+  - name: identity_to_akkio_deduped
+    description: >
+      Deduplicated identity graph for joins (MATERIALIZED TABLE).
+      Rows: 1.76B | Refresh: Full (~5-10 min)
+      CRITICAL: Must be table not view - referenced 3+ times in downstream models.
+    columns:
+      - name: identity
+        description: "The identity value (IP, MAID, CTV ID, etc)"
+      - name: id_type
+        description: "Type of identity (ip, ctv, idfa, aaid)"
+      - name: akkio_id
+        description: "Associated household ID"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - identity
+            - id_type
+            - akkio_id
 
   - name: locality_campaign_exposure
-    description: "A starter dbt model"
+    description: >
+      Campaign impressions linked to households.
+      Rows: 2.9B | Grain: (transaction_id, akkio_id) | Partition: exposure_date (monthly)
     columns:
-      - name: id
-        description: "The primary key for this table"
+      - name: akkio_id
+        description: "Household identifier"
         data_tests:
-          - unique
           - not_null
-          
+          - relationships:
+              to: ref('v_akkio_attributes_latest')
+              field: akkio_id
+      - name: locality_campaign_id
+        description: "Locality campaign identifier"
+      - name: loopme_campaign_id
+        description: "LoopMe campaign identifier (if applicable)"
+      - name: fw_campaign_id
+        description: "FreeWheel campaign identifier (if applicable)"
+      - name: exposure_date
+        description: "Date of the exposure"
+        data_tests:
+          - not_null
+      - name: source
+        description: "Source of the exposure (freewheel or loopme)"
+        data_tests:
+          - accepted_values:
+              values: ['freewheel', 'loopme']
+      - name: transaction_id
+        description: "Unique transaction identifier (for FreeWheel exposures)"
+      - name: ip_address
+        description: "IP address of the viewer"
+      - name: device_id
+        description: "Device ID of the viewer"
+      - name: maid
+        description: "Mobile Advertising ID (for LoopMe exposures)"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - transaction_id
+            - akkio_id
+
   - name: akkio_segments
-    description: "View of the AKKIO segments"
+    description: >
+      Household segment assignments (Inscape only - Datonics processing disabled).
+      Rows: ~410M (Inscape matched) | Grain: (akkio_id, segment_id, segment_source)
+      NOTE: Datonics segments skipped due to 609B row source table requiring specialized processing.
     columns:
-      - name: id
-        description: "The primary key for this table"
+      - name: akkio_id
+        description: "Household identifier"
         data_tests:
-          - unique
           - not_null
+      - name: segment_id
+        description: "Segment identifier"
+        data_tests:
+          - not_null
+      - name: segment_name
+        description: "Normalized segment name (lowercase, spaces->hyphens, &->and)"
+      - name: segment_description
+        description: "Segment description (Datonics only)"
+      - name: segment_source
+        description: "Source of the segment (currently inscape only)"
+        data_tests:
+          - accepted_values:
+              values: ['inscape']  # datonics disabled - would add back when processing enabled
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - akkio_id
+            - segment_id
+            - segment_source
