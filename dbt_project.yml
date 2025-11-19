@@ -53,9 +53,11 @@ models:
         - locality_poc
         - monthly
       +database: akkio
-      v_akkio_attributes_latest:
-        +materialized: view
-        +alias: V_AKKIO_ATTRIBUTES_LATEST
+      akkio_attributes_latest:
+        +materialized: table
+        +alias: AKKIO_ATTRIBUTES_LATEST
+        +post_hook:
+          - "alter table {{ this }} cluster by (akkio_id)"
       identity_to_akkio_deduped:
         +materialized: table  # MUST be table - reused 3+ times downstream
         +alias: IDENTITY_TO_AKKIO_DEDUPED

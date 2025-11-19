@@ -29,8 +29,7 @@ loopme_conversions AS (
     SELECT DISTINCT
         ita.AKKIO_ID,
         l.locality_campaign_id,
-        l.loopme_campaign_id,
-        l.date AS conversion_timestamp
+        l.loopme_campaign_id
     FROM {{ source('locality_poc_share_silver', 'loopme') }} l
     INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
         ON (l.maid = ita.IDENTITY) OR (l.ip = ita.IDENTITY)
@@ -41,7 +40,6 @@ SELECT
     -- LoopMe enrichment: campaign ID and conversion flag
     conv.loopme_campaign_id AS LOOPME_CAMPAIGN_ID,
     CASE WHEN conv.AKKIO_ID IS NOT NULL THEN TRUE ELSE FALSE END AS HAS_LOOPME_CONVERSION,
-    conv.conversion_timestamp AS LOOPME_CONVERSION_TIMESTAMP,
     -- Include ALL freewheel columns (70+ fields)
     fw.transaction_id,
     fw.ad_unit_id,

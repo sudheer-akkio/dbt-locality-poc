@@ -1,10 +1,6 @@
 {{
     config(
-        materialized='table',
-        alias='V_AKKIO_ATTRIBUTES_LATEST',
-        post_hook=[
-            "alter table {{this}} cluster by (PARTITION_DATE, AKKIO_ID)"
-        ]
+        materialized='table'
     )
 }}
 
@@ -188,13 +184,15 @@ SELECT
         ELSE NULL
     END AS EMPLOYMENT_TYPE,
 
-    -- HIGH WEALTH INDICATORS (boolean aggregate)
-    CASE WHEN e_cv.high_wealth_5m_plus THEN 'Y' ELSE 'N' END AS HIGH_WEALTH_FLAG,
-    CASE WHEN e_cv.receive_high_value_stock THEN 'Y' ELSE 'N' END AS HIGH_VALUE_STOCK_FLAG,
-
     -- ============================================================
     -- MULTI-SELECT FLAGS (keep as-is - households can have multiple)
     -- ============================================================
+
+    -- WEALTH & CAREER INDICATORS
+    e_cv.high_wealth_5m_plus,
+    e_cv.receive_high_value_stock,
+    e_cv.recent_promoted_12mo,
+    e_cv.former_expatriate,
 
     -- HIGH SPEND CATEGORIES (~150 flags - keep all)
     e_cv.rc_airline_travel_high_spend,

@@ -16,6 +16,6 @@ SELECT DISTINCT
     e_map.id_type AS ID_TYPE,
     attr.AKKIO_ID
 FROM {{ source('locality_poc_share_silver', 'experian_consolidated_id_map') }} e_map
-INNER JOIN {{ ref('v_akkio_attributes_latest') }} attr
+INNER JOIN {{ ref('akkio_attributes_latest') }} attr
     ON e_map.hh_id = attr.AKKIO_ID
 WHERE e_map.id_type IN ('ip', 'ctv', 'idfa', 'aaid')

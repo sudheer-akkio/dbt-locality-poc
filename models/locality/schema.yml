@@ -72,10 +72,10 @@ sources:
           directly measure ad performance. (7.4M rows)
 
 models:
-  - name: v_akkio_attributes_latest
+  - name: akkio_attributes_latest
     description: >
       Household spine with decoded Experian behavioral attributes and spending patterns.
-      Rows: 108M | Grain: AKKIO_ID | Refresh: Full (~1 min)
+      Rows: 108M | Grain: AKKIO_ID | Refresh: Full (~1 min) | Materialization: Table
       | :short-name:audience_attributes: :use_for_audience_gen: |<
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -153,8 +153,8 @@ models:
 
   - name: locality_campaign_exposure
     description: >
-      Campaign impressions linked to households from FreeWheel and LoopMe.
-      Rows: 2.9B | Grain: (TRANSACTION_ID, AKKIO_ID) | Partition: EXPOSURE_DATE (monthly)
+      Campaign impressions from FreeWheel enriched with LoopMe conversion data.
+      Rows: 2.9B | Grain: (TRANSACTION_ID, AKKIO_ID) | Partition: EVENT_DATE (monthly)
       | :short-name:campaign_exposure: |<
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -167,39 +167,36 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('v_akkio_attributes_latest')
+              to: ref('akkio_attributes_latest')
               field: AKKIO_ID
-      - name: LOCALITY_CAMPAIGN_ID
-        description: "Locality campaign identifier | :ui-name:Campaign ID:"
       - name: LOOPME_CAMPAIGN_ID
-        description: "LoopMe campaign identifier (if applicable)"
-      - name: FW_CAMPAIGN_ID
-        description: "FreeWheel campaign identifier (if applicable)"
-      - name: EXPOSURE_DATE
-        description: "Date of the exposure | :ui-name:Exposure Date:"
+        description: "LoopMe campaign identifier (if conversion occurred)"
+      - name: HAS_LOOPME_CONVERSION
+        description: "Boolean flag indicating if household converted in LoopMe"
         tests:
           - not_null
-      - name: SOURCE
-        description: "Source of the exposure (FreeWheel or LoopMe)"
-        tests:
-          - accepted_values:
-              values: ['FreeWheel', 'LoopMe']
       - name: TRANSACTION_ID
-        description: "Unique transaction identifier (for FreeWheel exposures)"
+        description: "Unique FreeWheel transaction identifier"
+        tests:
+          - not_null
+      - name: EVENT_DATE
+        description: "Date of the ad exposure | :ui-name:Exposure Date:"
+        tests:
+          - not_null
+      - name: LOCALITY_CAMPAIGN_ID
+        description: "Locality campaign identifier | :ui-name:Campaign ID:"
+      - name: LOCALITY_ADVERTISER
+        description: "Locality advertiser name"
+      - name: LOCALITY_CAMPAIGN
+        description: "Locality campaign name"
       - name: IP_ADDRESS
         description: "IP address of the viewer"
       - name: DEVICE_ID
         description: "Device ID of the viewer"
-      - name: LOCALITY_ADVERTISER
-        description: "Locality advertiser name (FreeWheel only)"
-      - name: LOCALITY_CAMPAIGN
-        description: "Locality campaign name (FreeWheel only)"
       - name: CREATIVE_ID
-        description: "Creative ID (FreeWheel only)"
+        description: "Creative ID"
       - name: REVENUE
-        description: "Revenue from impression (FreeWheel only)"
-      - name: MAID
-        description: "Mobile Advertising ID (for LoopMe exposures)"
+        description: "Revenue from impression"
 
   - name: akkio_segments
     description: >
