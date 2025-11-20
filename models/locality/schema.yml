@@ -83,54 +83,66 @@ models:
             - AKKIO_ID
     columns:
       - name: PARTITION_DATE
-        description: "Current date when model was run | :akkio-context-ignore |<"
+        description: "Current date when model was run | :akkio-context-ignore: |<"
         tests:
           - not_null
       - name: AKKIO_ID
-        description: "Unique household identifier | :ID"
+        description: "Unique household identifier"
         tests:
           - unique
           - not_null
+      - name: AKKIO_HH_ID
+        description: "Household identifier (same as AKKIO_ID for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN)"
-      - name: HOUSING_SEGMENT
-        description: "Housing type segment (apartment renter types, homeowner types) | :Demographics :all_unique_values"
+      - name: GENDER
+        description: "Gender (NULL - not available in Experian Consumerview)"
+      - name: AGE
+        description: "Age (NULL - not available in Experian Consumerview)"
+      - name: AGE_BUCKET
+        description: "Age bucket (NULL - not available in Experian Consumerview)"
+      - name: ETHNICITY
+        description: "Ethnicity (NULL - not available in Experian Consumerview)"
+      - name: EDUCATION_LEVEL
+        description: "Education level (NULL - not available in Experian Consumerview)"
+      - name: MARITAL_STATUS
+        description: "Marital status (NULL - not available in Experian Consumerview)"
+      - name: STATE
+        description: "State (NULL - not available in Experian Consumerview)"
+      - name: ZIP11
+        description: "ZIP+4 code (NULL - not available in Experian Consumerview)"
+      - name: HOUSING_TYPE
+        description: "Housing type segment (apartment renter types, homeowner types) | :all-unique-values: |<"
       - name: HOME_OWNERSHIP
-        description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
-      - name: NET_WORTH_K
-        description: "Net worth in thousands (lower bound of bucket) | :Demographics"
-        tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100000
-              severity: warn
-      - name: NET_WORTH_BUCKET
-        description: "Net worth bucket code (1-9) | :Demographics"
-      - name: HOUSEHOLD_INCOME_K
-        description: "Estimated household income in thousands (lower bound) | :Demographics"
+        description: "Home ownership status (Owner/Renter/NULL)"
+      - name: INCOME
+        description: "Estimated household income in thousands (lower bound)"
         tests:
           - dbt_utils.accepted_range:
               min_value: 0
               max_value: 5000
               severity: warn
-      - name: INCOME_BUCKET
-        description: "Income bucket code (1-7) | :Demographics"
-      - name: HIGH_WEALTH_FLAG
-        description: "High wealth indicator (5M+)"
-      - name: EMPLOY_PUBLIC_COMPANY
-        description: "Employed by public traded company flag"
-      - name: EMPLOY_PRIVATE_COMPANY
-        description: "Employed by private held company flag"
-      - name: EXECUTIVE_DECISION_MAKER
-        description: "Executive or decision maker flag"
-      - name: COMPANY_FOUNDER
-        description: "Company founder flag"
-      - name: HIGH_VALUE_STOCK_HOLDER
-        description: "Receives high value stock compensation flag"
+      - name: INCOME_RANGE
+        description: "Income range bucket (e.g. '250000-499999')"
+      - name: NET_WORTH
+        description: "Net worth in thousands (lower bound of bucket)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100000
+              severity: warn
+      - name: NET_WORTH_RANGE
+        description: "Net worth range bucket (e.g. '2000000-4999999')"
       - name: HOME_SALE_PROPENSITY
-        description: "Likelihood to sell home with timeframe | :all_unique_values"
+        description: "Likelihood to sell home with timeframe | :all-unique-values: |<"
+      - name: LUXURY_VEHICLE_SEGMENT
+        description: "Luxury vehicle segment (Ultra-Luxury/Luxury/NULL)"
+      - name: EV_OWNERSHIP_SEGMENT
+        description: "Electric vehicle segment (Electric Truck/Luxury EV/Mainstream EV/NULL)"
+      - name: EMPLOYMENT_TYPE
+        description: "Employment type (Executive/Founder/Public Company/Private Company/NULL)"
       - name: DBT_UPDATED_AT
-        description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
+        description: "Timestamp when record was processed by dbt | :akkio-ml-ignore: |<"
 
   - name: identity_to_akkio_deduped
     description: >
@@ -147,9 +159,9 @@ models:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
-        description: "Type of identity | :lower"
+        description: "Type of identity | :lower: |<"
       - name: AKKIO_ID
-        description: "Associated household ID | :ID"
+        description: "Associated household ID"
 
   - name: locality_campaign_exposure
     description: >
@@ -163,7 +175,7 @@ models:
             - AKKIO_ID
     columns:
       - name: AKKIO_ID
-        description: "Household identifier | :ID"
+        description: "Household identifier"
         tests:
           - not_null
           - relationships:
@@ -180,11 +192,11 @@ models:
         tests:
           - not_null
       - name: EVENT_DATE
-        description: "Date of the ad exposure | :ui-name:Exposure Date:"
+        description: "Date of the ad exposure | :ui-name:Exposure Date: |<"
         tests:
           - not_null
       - name: LOCALITY_CAMPAIGN_ID
-        description: "Locality campaign identifier | :ui-name:Campaign ID:"
+        description: "Locality campaign identifier | :ui-name:Campaign ID: |<"
       - name: LOCALITY_ADVERTISER
         description: "Locality advertiser name"
       - name: LOCALITY_CAMPAIGN
@@ -197,6 +209,90 @@ models:
         description: "Creative ID"
       - name: REVENUE
         description: "Revenue from impression"
+
+  - name: v_agg_akkio_ind
+    description: >
+      Individual-level aggregation table for analytics platform compatibility (Insights).
+      Rows: 108M | Grain: AKKIO_ID | Materialization: Table
+      Note: Despite "_ind" naming, this is household-level data (matching vizio pattern for compatibility).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - PARTITION_DATE
+            - AKKIO_ID
+    columns:
+      - name: AKKIO_ID
+        description: "Unique household identifier"
+        tests:
+          - not_null
+      - name: AKKIO_HH_ID
+        description: "Household identifier (same as AKKIO_ID for household-level data)"
+      - name: WEIGHT
+        description: "Fixed weight value (11) for analytics"
+      - name: GENDER
+        description: "Gender (placeholder: 'UNDETERMINED' - not available in source)"
+      - name: AGE
+        description: "Age (NULL - not available in source)"
+      - name: AGE_BUCKET
+        description: "Age bucket (NULL - not available in source)"
+      - name: ETHNICITY_PREDICTION
+        description: "Ethnicity (placeholder: 'Unknown' - not available in source)"
+      - name: EDUCATION
+        description: "Education level (placeholder: 'Unknown' - not available in source)"
+      - name: MARITAL_STATUS
+        description: "Marital status (placeholder: 'Unknown' - not available in source)"
+      - name: STATE
+        description: "State (placeholder: 'Unknown' - not available in source)"
+      - name: HOMEOWNER
+        description: "Home ownership status"
+      - name: INCOME
+        description: "Household income (numeric)"
+      - name: INCOME_BUCKET
+        description: "Income range bucket"
+      - name: ZIP_CODE
+        description: "ZIP code (NULL - not available in source)"
+      - name: NET_WORTH_BUCKET
+        description: "Net worth range bucket"
+      - name: MAIDS
+        description: "Mobile Ad IDs (NULL - placeholder for COUNTS insight)"
+      - name: IPS
+        description: "IP addresses (NULL - placeholder for COUNTS insight)"
+      - name: EMAILS
+        description: "Email addresses (NULL - placeholder for COUNTS insight)"
+      - name: PHONES
+        description: "Phone numbers (NULL - placeholder for COUNTS insight)"
+      - name: PARTITION_DATE
+        description: "Date when model was run"
+        tests:
+          - not_null
+
+  - name: v_agg_akkio_hh
+    description: >
+      Household-level aggregation table for analytics platform compatibility (Insights).
+      Rows: 108M | Grain: AKKIO_HH_ID | Materialization: Table
+      Note: Since AKKIO_HH_ID = AKKIO_ID, this is 1:1 with akkio_attributes_latest.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - PARTITION_DATE
+            - AKKIO_HH_ID
+    columns:
+      - name: AKKIO_HH_ID
+        description: "Household identifier"
+        tests:
+          - not_null
+      - name: WEIGHT
+        description: "Fixed weight value (11.0) for analytics (required for all insights)"
+      - name: HOMEOWNER
+        description: "Home ownership status (required for HOMEOWNERSHIP insight)"
+      - name: INCOME
+        description: "Household income (numeric, required for INCOME insight)"
+      - name: INCOME_BUCKET
+        description: "Income range bucket"
+      - name: PARTITION_DATE
+        description: "Date when model was run"
+        tests:
+          - not_null
 
   - name: akkio_segments
     description: >
@@ -212,7 +308,7 @@ models:
             - SEGMENT_SOURCE
     columns:
       - name: AKKIO_ID
-        description: "Household identifier | :ID"
+        description: "Household identifier"
         tests:
           - not_null
       - name: SEGMENT_ID
@@ -220,11 +316,11 @@ models:
         tests:
           - not_null
       - name: SEGMENT_NAME
-        description: "Normalized segment name | :lower :space-to-hyphen"
+        description: "Normalized segment name | :lower: :space-to-hyphen: |<"
       - name: SEGMENT_DESCRIPTION
         description: "Segment description (Datonics only - currently NULL)"
       - name: SEGMENT_SOURCE
-        description: "Source of the segment | :lower"
+        description: "Source of the segment | :lower: |<"
         tests:
           - accepted_values:
               values: ['inscape']

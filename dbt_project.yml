@@ -75,4 +75,14 @@ models:
         +partition_by: exposure_date
         +alias: LOCALITY_CAMPAIGN_EXPOSURE
         # NOTE: Cannot use clustering on partitioned tables in Databricks
-        # Partitioning by exposure_date provides the performance optimization 
+        # Partitioning by exposure_date provides the performance optimization
+      v_agg_akkio_ind:
+        +materialized: table
+        +alias: V_AGG_AKKIO_IND
+        +post_hook:
+          - "alter table {{ this }} cluster by (partition_date, akkio_id)"
+      v_agg_akkio_hh:
+        +materialized: table
+        +alias: V_AGG_AKKIO_HH
+        +post_hook:
+          - "alter table {{ this }} cluster by (partition_date, akkio_hh_id)" 

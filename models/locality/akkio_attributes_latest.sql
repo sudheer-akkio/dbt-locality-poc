@@ -18,10 +18,24 @@ WITH one_luid_per_household AS (
 SELECT
     -- Primary Keys
     olh.hh_id AS AKKIO_ID,
+    olh.hh_id AS AKKIO_HH_ID,  -- Same as AKKIO_ID for household-level data
     olh.luid AS LUID,
 
     -- Temporal
     CURRENT_DATE() AS PARTITION_DATE,
+
+    -- ============================================================
+    -- INDIVIDUAL DEMOGRAPHICS (placeholders - not available in Experian Consumerview)
+    -- ============================================================
+
+    CAST(NULL AS STRING) AS GENDER,
+    CAST(NULL AS INT) AS AGE,
+    CAST(NULL AS INT) AS AGE_BUCKET,
+    CAST(NULL AS STRING) AS ETHNICITY,
+    CAST(NULL AS STRING) AS EDUCATION_LEVEL,
+    CAST(NULL AS STRING) AS MARITAL_STATUS,
+    CAST(NULL AS STRING) AS STATE,
+    CAST(NULL AS STRING) AS ZIP11,
 
     -- ============================================================
     -- DERIVED CATEGORICAL COLUMNS (following Horizon standards)
