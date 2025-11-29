@@ -50,6 +50,14 @@ sources:
           cases include targeting marketing strategies for specific demographics,
           understanding rental market trends, and tailoring products and services to
           different household types. (288M rows, 528 columns)
+      - name: experian_consumerview2
+        description: >
+          Extended ConsumerView with comprehensive demographics, interests, vehicle ownership,
+          financial data, and behavioral attributes. Includes Person 1 and Person 2 variants
+          for multi-person households. Key columns: Person__RC_Person__Age_1/2,
+          Person_RC_gndr_gndr_2, Person__RC_Ethnic_-_Group_1/2, stat_abbr, DU_size,
+          400+ Auto_Seg_Own_* columns, 50+ RC_ActInt_* columns, TRX_* transaction columns.
+          (~1800 columns)
       - name: freewheel_placement_mapping
         description: >
           Contains information about the CTV advertising campaigns managed by
@@ -76,14 +84,14 @@ models:
     description: >
       Household spine with decoded Experian behavioral attributes and spending patterns.
       Rows: 108M | Grain: AKKIO_ID | Refresh: Full (~1 min) | Materialization: Table
-      | :short-name:audience_attributes: :use_for_audience_gen: |<
+      | :short-name:audience_attributes :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - AKKIO_ID
     columns:
       - name: PARTITION_DATE
-        description: "Current date when model was run | :akkio-context-ignore: |<"
+        description: "Current date when model was run | :akkio-context-ignore |<"
         tests:
           - not_null
       - name: AKKIO_ID
@@ -94,27 +102,63 @@ models:
       - name: AKKIO_HH_ID
         description: "Household identifier (same as AKKIO_ID for household-level data)"
       - name: LUID
-        description: "Linked user ID from Experian (one per household via MIN)"
+        description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: GENDER
-        description: "Gender (NULL - not available in Experian Consumerview)"
+        description: "Gender from ConsumerView2 (Person_RC_gndr_gndr_2) | :ml-encoding-nominal |<"
       - name: AGE
-        description: "Age (NULL - not available in Experian Consumerview)"
+        description: "Age in years - midpoint of age range from ConsumerView2"
       - name: AGE_BUCKET
-        description: "Age bucket (NULL - not available in Experian Consumerview)"
+        description: "Age bucket: 1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+"
       - name: ETHNICITY
-        description: "Ethnicity (NULL - not available in Experian Consumerview)"
+        description: "Ethnicity from ConsumerView2 (Person__RC_Ethnic_-_Group) | :ml-encoding-nominal |<"
       - name: EDUCATION_LEVEL
-        description: "Education level (NULL - not available in Experian Consumerview)"
+        description: "Education level from ConsumerView2 | :ml-encoding-nominal |<"
       - name: MARITAL_STATUS
-        description: "Marital status (NULL - not available in Experian Consumerview)"
+        description: "Marital status from ConsumerView2 | :ml-encoding-nominal |<"
       - name: STATE
-        description: "State (NULL - not available in Experian Consumerview)"
+        description: "State abbreviation from ConsumerView2 (stat_abbr) | :ml-encoding-nominal |<"
       - name: ZIP11
-        description: "ZIP+4 code (NULL - not available in Experian Consumerview)"
+        description: "ZIP+4 code (NULL - not available in ConsumerView2) | :ml-encoding-nominal |<"
+      - name: OCCUPATION
+        description: "Occupation from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: OCCUPATION_TITLE
+        description: "Job title from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: CHILD_AGE_GROUP
+        description: "Child age groups (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal |<"
+      - name: NUMBER_OF_CHILDREN
+        description: "Number of children (1, 2+) | :ml-encoding-nominal |<"
+      - name: PRESENCE_OF_CHILDREN
+        description: "Has children indicator (1=Yes, 0=No)"
+      - name: NUM_PEOPLE_IN_HOUSEHOLD_GROUP
+        description: "Household size from ConsumerView2 (DU_size)"
+      - name: HOME_VALUE_RANGE
+        description: "Estimated home value range from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: GENERAL_INTERESTS
+        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :ml-encoding-nominal |<"
+      - name: SPORTS_INTERESTS
+        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :ml-encoding-nominal |<"
+      - name: READING_INTERESTS
+        description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal |<"
+      - name: TRAVEL_INTERESTS
+        description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal |<"
+      - name: VEHICLE_MAKES
+        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :ml-encoding-nominal |<"
+      - name: VEHICLE_STYLES
+        description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal |<"
+      - name: VEHICLE_CLASS
+        description: "Vehicle class (comma-separated: Luxury Car, Sports Car, etc.) | :ml-encoding-nominal |<"
+      - name: FUEL_CODE
+        description: "Fuel type (comma-separated: Electric, Hybrid, Alt Fuel) | :ml-encoding-nominal |<"
+      - name: FINANCIAL_HEALTH_BUCKET
+        description: "Financial health score from ConsumerView2"
+      - name: CREDIT_CARD_INFO
+        description: "Credit card usage (comma-separated: Premium Card, Corporate Card, etc.) | :ml-encoding-nominal |<"
+      - name: INVESTMENT_TYPE
+        description: "Investment types (comma-separated: Active Investor, Brokerage Account, etc.) | :ml-encoding-nominal |<"
       - name: HOUSING_TYPE
-        description: "Housing type segment (apartment renter types, homeowner types) | :all-unique-values: |<"
+        description: "Housing type segment (apartment renter types, homeowner types) | :ml-encoding-nominal |<"
       - name: HOME_OWNERSHIP
-        description: "Home ownership status (Owner/Renter/NULL)"
+        description: "Home ownership status (Owner/Renter/NULL) | :ml-encoding-nominal |<"
       - name: INCOME
         description: "Estimated household income in thousands (lower bound)"
         tests:
@@ -123,26 +167,11 @@ models:
               max_value: 5000
               severity: warn
       - name: INCOME_RANGE
-        description: "Income range bucket (e.g. '250000-499999')"
-      - name: NET_WORTH
-        description: "Net worth in thousands (lower bound of bucket)"
-        tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100000
-              severity: warn
+        description: "Income range bucket (e.g. '250000-499999') | :ml-encoding-nominal |<"
       - name: NET_WORTH_RANGE
-        description: "Net worth range bucket (e.g. '2000000-4999999')"
-      - name: HOME_SALE_PROPENSITY
-        description: "Likelihood to sell home with timeframe | :all-unique-values: |<"
-      - name: LUXURY_VEHICLE_SEGMENT
-        description: "Luxury vehicle segment (Ultra-Luxury/Luxury/NULL)"
-      - name: EV_OWNERSHIP_SEGMENT
-        description: "Electric vehicle segment (Electric Truck/Luxury EV/Mainstream EV/NULL)"
-      - name: EMPLOYMENT_TYPE
-        description: "Employment type (Executive/Founder/Public Company/Private Company/NULL)"
+        description: "Net worth range bucket (e.g. '2000000-4999999') | :ml-encoding-nominal |<"
       - name: DBT_UPDATED_AT
-        description: "Timestamp when record was processed by dbt | :akkio-ml-ignore: |<"
+        description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
 
   - name: identity_to_akkio_deduped
     description: >
@@ -159,7 +188,7 @@ models:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
-        description: "Type of identity | :lower: |<"
+        description: "Type of identity | :lower |<"
       - name: AKKIO_ID
         description: "Associated household ID"
 
@@ -167,7 +196,7 @@ models:
     description: >
       Campaign impressions from FreeWheel enriched with LoopMe conversion data.
       Rows: 2.9B | Grain: (TRANSACTION_ID, AKKIO_ID) | Partition: EVENT_DATE (monthly)
-      | :short-name:campaign_exposure: |<
+      | :short-name:campaign_exposure |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -192,11 +221,11 @@ models:
         tests:
           - not_null
       - name: EVENT_DATE
-        description: "Date of the ad exposure | :ui-name:Exposure Date: |<"
+        description: "Date of the ad exposure | :ui-name:Exposure Date |<"
         tests:
           - not_null
       - name: LOCALITY_CAMPAIGN_ID
-        description: "Locality campaign identifier | :ui-name:Campaign ID: |<"
+        description: "Locality campaign identifier | :ui-name:Campaign ID |<"
       - name: LOCALITY_ADVERTISER
         description: "Locality advertiser name"
       - name: LOCALITY_CAMPAIGN
@@ -213,8 +242,8 @@ models:
   - name: v_agg_akkio_ind
     description: >
       Individual-level aggregation table for analytics platform compatibility (Insights).
+      Now with real demographic data from ConsumerView2.
       Rows: 108M | Grain: AKKIO_ID | Materialization: Table
-      Note: Despite "_ind" naming, this is household-level data (matching vizio pattern for compatibility).
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -226,41 +255,65 @@ models:
         tests:
           - not_null
       - name: AKKIO_HH_ID
-        description: "Household identifier (same as AKKIO_ID for household-level data)"
+        description: "Household identifier (same as AKKIO_ID)"
       - name: WEIGHT
-        description: "Fixed weight value (11) for analytics"
+        description: "Weight value (1.0 for equal weighting)"
       - name: GENDER
-        description: "Gender (placeholder: 'UNDETERMINED' - not available in source)"
+        description: "Gender from ConsumerView2 (defaults to 'UNDETERMINED' if NULL) | :ml-encoding-nominal |<"
       - name: AGE
-        description: "Age (NULL - not available in source)"
+        description: "Age in years from ConsumerView2 (midpoint of age range)"
       - name: AGE_BUCKET
-        description: "Age bucket (NULL - not available in source)"
+        description: "Age bucket: 1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+"
       - name: ETHNICITY_PREDICTION
-        description: "Ethnicity (placeholder: 'Unknown' - not available in source)"
+        description: "Ethnicity from ConsumerView2 (defaults to 'Unknown' if NULL) | :ml-encoding-nominal |<"
       - name: EDUCATION
-        description: "Education level (placeholder: 'Unknown' - not available in source)"
+        description: "Education level from ConsumerView2 (defaults to 'Unknown' if NULL) | :ml-encoding-nominal |<"
       - name: MARITAL_STATUS
-        description: "Marital status (placeholder: 'Unknown' - not available in source)"
+        description: "Marital status from ConsumerView2 (defaults to 'Unknown' if NULL) | :ml-encoding-nominal |<"
       - name: STATE
-        description: "State (placeholder: 'Unknown' - not available in source)"
+        description: "State abbreviation from ConsumerView2 (defaults to 'Unknown' if NULL) | :ml-encoding-nominal |<"
+      - name: ZIP_CODE
+        description: "ZIP code (NULL - not available in ConsumerView2) | :ml-encoding-nominal |<"
+      - name: OCCUPATION
+        description: "Occupation from ConsumerView2 | :ml-encoding-nominal |<"
       - name: HOMEOWNER
-        description: "Home ownership status"
+        description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
       - name: INCOME
-        description: "Household income (numeric)"
+        description: "Household income in dollars (numeric)"
       - name: INCOME_BUCKET
         description: "Income range bucket"
-      - name: ZIP_CODE
-        description: "ZIP code (NULL - not available in source)"
       - name: NET_WORTH_BUCKET
         description: "Net worth range bucket"
+      - name: GENERAL_INTERESTS
+        description: "General interests (comma-separated) | :ml-encoding-nominal |<"
+      - name: SPORTS_INTERESTS
+        description: "Sports interests (comma-separated) | :ml-encoding-nominal |<"
+      - name: READING_INTERESTS
+        description: "Reading interests (comma-separated) | :ml-encoding-nominal |<"
+      - name: TRAVEL_INTERESTS
+        description: "Travel interests (comma-separated) | :ml-encoding-nominal |<"
+      - name: MAKE
+        description: "Vehicle makes owned (comma-separated) | :ml-encoding-nominal |<"
+      - name: VEHICLE_STYLE
+        description: "Vehicle styles (comma-separated) | :ml-encoding-nominal |<"
+      - name: VEHICLE_CLASS
+        description: "Vehicle class (comma-separated) | :ml-encoding-nominal |<"
+      - name: FUEL_CODE
+        description: "Vehicle fuel types (comma-separated) | :ml-encoding-nominal |<"
+      - name: FINANCIAL_HEALTH_BUCKET
+        description: "Financial health score"
+      - name: CREDIT_CARD_INFO
+        description: "Credit card usage types (comma-separated) | :ml-encoding-nominal |<"
+      - name: INVESTMENT_TYPE
+        description: "Investment types (comma-separated) | :ml-encoding-nominal |<"
       - name: MAIDS
-        description: "Mobile Ad IDs (NULL - placeholder for COUNTS insight)"
+        description: "Mobile Ad IDs (NULL - placeholder for COUNTS insight) | :ml-encoding-nominal |<"
       - name: IPS
-        description: "IP addresses (NULL - placeholder for COUNTS insight)"
+        description: "IP addresses (NULL - placeholder for COUNTS insight) | :ml-encoding-nominal |<"
       - name: EMAILS
-        description: "Email addresses (NULL - placeholder for COUNTS insight)"
+        description: "Email addresses (NULL - placeholder for COUNTS insight) | :ml-encoding-nominal |<"
       - name: PHONES
-        description: "Phone numbers (NULL - placeholder for COUNTS insight)"
+        description: "Phone numbers (NULL - placeholder for COUNTS insight) | :ml-encoding-nominal |<"
       - name: PARTITION_DATE
         description: "Date when model was run"
         tests:
@@ -269,8 +322,8 @@ models:
   - name: v_agg_akkio_hh
     description: >
       Household-level aggregation table for analytics platform compatibility (Insights).
+      Now with real demographic data from ConsumerView2 including children and household size.
       Rows: 108M | Grain: AKKIO_HH_ID | Materialization: Table
-      Note: Since AKKIO_HH_ID = AKKIO_ID, this is 1:1 with akkio_attributes_latest.
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -282,13 +335,121 @@ models:
         tests:
           - not_null
       - name: WEIGHT
-        description: "Fixed weight value (11.0) for analytics (required for all insights)"
+        description: "Weight value (1.0 for equal weighting)"
+      - name: HH_WEIGHT
+        description: "Alias for WEIGHT for backwards compatibility"
       - name: HOMEOWNER
-        description: "Home ownership status (required for HOMEOWNERSHIP insight)"
+        description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
       - name: INCOME
-        description: "Household income (numeric, required for INCOME insight)"
+        description: "Household income in dollars (numeric)"
       - name: INCOME_BUCKET
         description: "Income range bucket"
+      - name: CHILD_AGE_GROUP
+        description: "Child age groups in household (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal |<"
+      - name: NUMBER_OF_CHILDREN
+        description: "Number of children (1, 2+) | :ml-encoding-nominal |<"
+      - name: PRESENCE_OF_CHILDREN
+        description: "Has children indicator (1=Yes, 0=No)"
+      - name: NUM_PEOPLE_IN_HOUSEHOLD_GROUP
+        description: "Household size from ConsumerView2"
+      - name: MEDIAN_HOME_VALUE_BY_STATE
+        description: "Estimated home value range from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: PARTITION_DATE
+        description: "Date when model was run"
+        tests:
+          - not_null
+
+  - name: v_agg_akkio_ind_media
+    description: >
+      Individual-level media consumption table for analytics.
+      Contains streaming services, TV networks, devices, and genres watched.
+      Source: experian_consumerview2 | Grain: AKKIO_ID | Materialization: Table
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - PARTITION_DATE
+            - AKKIO_ID
+    columns:
+      - name: AKKIO_ID
+        description: "Unique household identifier"
+        tests:
+          - not_null
+      - name: AKKIO_HH_ID
+        description: "Household identifier"
+      - name: WEIGHT
+        description: "Weight value (1.0 for equal weighting)"
+      - name: APP_SERVICES_USED
+        description: "Streaming services used (comma-separated: Netflix, Hulu, HBO, Spotify, etc.) | :ml-encoding-nominal |<"
+      - name: NETWORKS_WATCHED
+        description: "TV networks/providers (comma-separated: Comcast, DirecTV, Spectrum, etc.) | :ml-encoding-nominal |<"
+      - name: INPUT_DEVICES_USED
+        description: "Devices owned (comma-separated: Laptop, Tablet, iPhone, Samsung TV, etc.) | :ml-encoding-nominal |<"
+      - name: GENRES_WATCHED
+        description: "TV/movie genres (comma-separated: Comedy, Drama, Thriller, etc.) | :ml-encoding-nominal |<"
+      - name: TITLES_WATCHED
+        description: "Specific shows/titles watched (comma-separated) | :ml-encoding-nominal |<"
+      - name: AD_BEHAVIOR
+        description: "Ad viewing behavior (Ad Avoider, Extreme Ad Avoider, Ad Acceptor) | :ml-encoding-nominal |<"
+      - name: VIEWING_MODE
+        description: "How they watch TV (Solo, Co-Watcher, Co-Watching with Children) | :ml-encoding-nominal |<"
+      - name: SCREEN_SIZE
+        description: "Preferred screen size (Small, Large) | :ml-encoding-nominal |<"
+      - name: IS_CORD_CUTTER
+        description: "Cord cutter indicator (1=Yes, 0=No)"
+      - name: PARTITION_DATE
+        description: "Date when model was run"
+        tests:
+          - not_null
+
+  - name: v_agg_akkio_ind_cpg
+    description: >
+      Individual-level CPG (Consumer Packaged Goods) purchase table for analytics.
+      Contains purchase categories, spending levels, and shopping behavior.
+      Source: experian_consumerview2 | Grain: AKKIO_ID | Materialization: Table
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - PARTITION_DATE
+            - AKKIO_ID
+    columns:
+      - name: AKKIO_ID
+        description: "Unique household identifier"
+        tests:
+          - not_null
+      - name: AKKIO_HH_ID
+        description: "Household identifier"
+      - name: WEIGHT
+        description: "Weight value (1.0 for equal weighting)"
+      - name: CATEGORIES_PURCHASED
+        description: "Purchase categories (comma-separated: Apparel, Pets, Food & Beverages, etc.) | :ml-encoding-nominal |<"
+      - name: PURCHASE_BUCKETS
+        description: "Spending levels by category (comma-separated key:value pairs) | :ml-encoding-nominal |<"
+      - name: TOTAL_DISCRETIONARY_SPEND
+        description: "Total discretionary spending estimate"
+      - name: DSE_APPAREL
+        description: "Discretionary spend estimate - Apparel"
+      - name: DSE_DINING
+        description: "Discretionary spend estimate - Dining out"
+      - name: DSE_ENTERTAINMENT
+        description: "Discretionary spend estimate - Entertainment"
+      - name: DSE_EDUCATION
+        description: "Discretionary spend estimate - Education"
+      - name: DSE_DONATIONS
+        description: "Discretionary spend estimate - Donations"
+      - name: DSE_FURNISHINGS
+        description: "Discretionary spend estimate - Furnishings"
+      - name: DSE_READING
+        description: "Discretionary spend estimate - Reading"
+      - name: DSE_PERSONAL
+        description: "Discretionary spend estimate - Personal"
+      - name: PREFERRED_CHANNEL
+        description: "Preferred shopping channel (In-Store, Online) | :ml-encoding-nominal |<"
+      - name: PAYMENT_PREFERENCE
+        description: "Payment method preference (Credit Card, Cash) | :ml-encoding-nominal |<"
+      - name: IS_COUPON_USER
+        description: "Coupon user indicator (1=Yes, 0=No)"
+      - name: SHOPPING_FREQUENCY
+        description: "Shopping frequency indicator (Frequent In-Store, Frequent Online) | :ml-encoding-nominal |<"
       - name: PARTITION_DATE
         description: "Date when model was run"
         tests:
@@ -299,7 +460,7 @@ models:
       Household segment assignments from Inscape (TV viewing and ad exposure patterns).
       Rows: ~410M | Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE)
       NOTE: Datonics segments skipped due to 609B row source table requiring specialized processing.
-      | :short-name:audience_segments: |<
+      | :short-name:audience_segments |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -316,11 +477,11 @@ models:
         tests:
           - not_null
       - name: SEGMENT_NAME
-        description: "Normalized segment name | :lower: :space-to-hyphen: |<"
+        description: "Normalized segment name | :lower :space-to-hyphen |<"
       - name: SEGMENT_DESCRIPTION
         description: "Segment description (Datonics only - currently NULL)"
       - name: SEGMENT_SOURCE
-        description: "Source of the segment | :lower: |<"
+        description: "Source of the segment | :lower |<"
         tests:
           - accepted_values:
               values: ['inscape']

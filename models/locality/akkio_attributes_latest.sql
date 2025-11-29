@@ -1,11 +1,15 @@
 {{
     config(
-        materialized='table'
+        materialized='table',
+        post_hook=[
+            "alter table {{this}} cluster by (AKKIO_ID)",
+        ]
     )
 }}
 
--- Experian attributes with derived categorical columns for common query patterns
--- Keeps ALL 528 original boolean columns for detailed segmentation
+-- Experian attributes with real demographic data from ConsumerView2
+-- Replaces synthetic data with actual Experian demographics
+-- Uses COALESCE for Person 1/Person 2 columns to get first available value
 
 WITH one_luid_per_household AS (
     SELECT
@@ -18,636 +22,311 @@ WITH one_luid_per_household AS (
 SELECT
     -- Primary Keys
     olh.hh_id AS AKKIO_ID,
-    olh.hh_id AS AKKIO_HH_ID,  -- Same as AKKIO_ID for household-level data
+    olh.hh_id AS AKKIO_HH_ID,
     olh.luid AS LUID,
 
     -- Temporal
     CURRENT_DATE() AS PARTITION_DATE,
 
     -- ============================================================
-    -- INDIVIDUAL DEMOGRAPHICS (placeholders - not available in Experian Consumerview)
+    -- INDIVIDUAL DEMOGRAPHICS (real data from ConsumerView2)
     -- ============================================================
 
-    CAST(NULL AS STRING) AS GENDER,
-    CAST(NULL AS INT) AS AGE,
-    CAST(NULL AS INT) AS AGE_BUCKET,
-    CAST(NULL AS STRING) AS ETHNICITY,
-    CAST(NULL AS STRING) AS EDUCATION_LEVEL,
-    CAST(NULL AS STRING) AS MARITAL_STATUS,
-    CAST(NULL AS STRING) AS STATE,
+    COALESCE(e_cv.`Person_RC_gndr_gndr_2`, NULL) AS GENDER,
+
+    -- AGE: Parse range string to midpoint integer
+    -- Age columns contain ranges like "25-34" - extract midpoint
+    CASE
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '%-%' THEN
+            CAST((
+                CAST(SPLIT(COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`), '-')[0] AS INT) +
+                CAST(SPLIT(COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`), '-')[1] AS INT)
+            ) / 2 AS INT)
+        ELSE NULL
+    END AS AGE,
+
+    -- AGE_BUCKET derived from AGE
+    CASE
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '18%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '19%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '20%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '21%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '22%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '23%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '24%' THEN 1
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '25%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '26%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '27%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '28%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '29%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '30%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '31%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '32%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '33%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '34%' THEN 2
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '35%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '36%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '37%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '38%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '39%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '40%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '41%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '42%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '43%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '44%' THEN 3
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '45%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '46%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '47%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '48%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '49%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '50%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '51%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '52%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '53%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '54%' THEN 4
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '55%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '56%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '57%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '58%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '59%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '60%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '61%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '62%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '63%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '64%' THEN 5
+        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '65%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '66%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '67%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '68%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '69%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '70%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '71%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '72%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '73%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '74%' THEN 6
+        ELSE 7
+    END AS AGE_BUCKET,
+
+    COALESCE(e_cv.`Person__RC_Ethnic_-_Group_1`, e_cv.`Person__RC_Ethnic_-_Group_2`) AS ETHNICITY,
+    e_cv.`Person__RC_Person__Education_M_2` AS EDUCATION_LEVEL,
+    e_cv.`Person__RC_Person__Marital_Status_2` AS MARITAL_STATUS,
+
+    -- GEOGRAPHIC DATA
+    e_cv.stat_abbr AS STATE,
     CAST(NULL AS STRING) AS ZIP11,
+    CAST(NULL AS STRING) AS COUNTY_NAME,
+
+    -- OCCUPATION
+    COALESCE(e_cv.`Person__RC_Person__Occupation_1`, e_cv.`Person__RC_Person__Occupation_2`) AS OCCUPATION,
+    e_cv.`Person_RC_Person_Title_1` AS OCCUPATION_TITLE,
 
     -- ============================================================
-    -- DERIVED CATEGORICAL COLUMNS (following Horizon standards)
+    -- HOUSEHOLD DATA
     -- ============================================================
 
-    -- HOUSING TYPE (from 13 mutually exclusive flags → categorical)
-    CASE
-        WHEN e_cv.luxury_apt_renters THEN 'Luxury Apartment Renter'
-        WHEN e_cv.high_rise_apt_renters THEN 'High-Rise Apartment Renter'
-        WHEN e_cv.pet_friendly_apt_renters THEN 'Pet-Friendly Apartment Renter'
-        WHEN e_cv.young_profess_apt_renters THEN 'Young Professional Apartment Renter'
-        WHEN e_cv.family_focus_apt_renters THEN 'Family-Focused Apartment Renter'
-        WHEN e_cv.fitness_apt_renters THEN 'Fitness-Oriented Apartment Renter'
-        WHEN e_cv.outdoor_loving_apt_renters THEN 'Outdoor-Loving Apartment Renter'
-        WHEN e_cv.urban_apt_renters THEN 'Urban Apartment Renter'
-        WHEN e_cv.young_family_homeowners THEN 'Young Family Homeowner'
-        WHEN e_cv.growing_family_homeowners THEN 'Growing Family Homeowner'
-        WHEN e_cv.second_homeowners THEN 'Second Homeowner'
-        WHEN e_cv.millennial_homeowners THEN 'Millennial Homeowner'
-        ELSE NULL
-    END AS HOUSING_TYPE,
+    -- Home ownership
+    e_cv.`RC_Homeowner_Combined_HomeownerRenter` AS HOME_OWNERSHIP,
 
-    -- HOME OWNERSHIP (Owner/Renter)
-    CASE
-        WHEN e_cv.young_family_homeowners
-            OR e_cv.growing_family_homeowners
-            OR e_cv.second_homeowners
-            OR e_cv.millennial_homeowners
-        THEN 'Owner'
-        WHEN e_cv.luxury_apt_renters
-            OR e_cv.high_rise_apt_renters
-            OR e_cv.pet_friendly_apt_renters
-            OR e_cv.young_profess_apt_renters
-            OR e_cv.family_focus_apt_renters
-            OR e_cv.fitness_apt_renters
-            OR e_cv.outdoor_loving_apt_renters
-            OR e_cv.urban_apt_renters
-        THEN 'Renter'
-        ELSE NULL
-    END AS HOME_OWNERSHIP,
+    -- Income
+    e_cv.`RC_Est_Household_Income_V6` AS INCOME_RANGE,
 
-    -- INCOME (from 7 mutually exclusive flags → numeric + categorical)
+    -- Parse income to numeric - extract lower bound
     CASE
-        WHEN e_cv.rc_ehi_amount_2_5Mplus THEN 2500
-        WHEN e_cv.rc_ehi_amount_2M_2_5_M THEN 2000
-        WHEN e_cv.rc_ehi_amount_1_5M_2M THEN 1500
-        WHEN e_cv.rc_ehi_amount_1M_1_5M THEN 1000
-        WHEN e_cv.rc_ehi_amount_750K_1M THEN 750
-        WHEN e_cv.rc_ehi_amount_500K_750K THEN 500
-        WHEN e_cv.rc_ehi_amount_250K_500K THEN 250
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%250%' AND e_cv.`RC_Est_Household_Income_V6` LIKE '%500%' THEN 250000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%200%' THEN 200000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%175%' THEN 175000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%150%' THEN 150000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%125%' THEN 125000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%100%' THEN 100000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%75%' THEN 75000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%60%' THEN 60000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%50%' THEN 50000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%40%' THEN 40000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%25%' THEN 25000
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%15%' THEN 15000
         ELSE NULL
     END AS INCOME,
 
+    -- Income bucket for histograms
     CASE
-        WHEN e_cv.rc_ehi_amount_2_5Mplus THEN '2500000+'
-        WHEN e_cv.rc_ehi_amount_2M_2_5_M THEN '2000000-2499999'
-        WHEN e_cv.rc_ehi_amount_1_5M_2M THEN '1500000-1999999'
-        WHEN e_cv.rc_ehi_amount_1M_1_5M THEN '1000000-1499999'
-        WHEN e_cv.rc_ehi_amount_750K_1M THEN '750000-999999'
-        WHEN e_cv.rc_ehi_amount_500K_750K THEN '500000-749999'
-        WHEN e_cv.rc_ehi_amount_250K_500K THEN '250000-499999'
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%250%' THEN 14
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%200%' THEN 13
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%175%' THEN 12
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%150%' THEN 11
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%125%' THEN 10
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%100%' THEN 9
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%75%' THEN 8
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%60%' THEN 7
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%50%' THEN 6
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%40%' THEN 5
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%25%' THEN 4
+        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%15%' THEN 3
         ELSE NULL
-    END AS INCOME_RANGE,
+    END AS INCOME_BUCKET,
 
-    -- NET WORTH (from 9 mutually exclusive flags → numeric + categorical)
+    -- Net worth from CFI score
+    e_cv.`CFINet_Asset_Score` AS NET_WORTH_RANGE,
+
+    -- Net worth bucket
     CASE
-        WHEN e_cv.hh_net_worth_50M_plus THEN 50000
-        WHEN e_cv.hh_net_worth_20M_50M THEN 20000
-        WHEN e_cv.hh_net_worth_10M_20M THEN 10000
-        WHEN e_cv.hh_net_worth_5M_10M THEN 5000
-        WHEN e_cv.hh_net_worth_2M_5M THEN 2000
-        WHEN e_cv.hh_net_worth_1M_2M THEN 1000
-        WHEN e_cv.hh_net_worth_500K_1M THEN 500
-        WHEN e_cv.hh_net_worth_100K_500K THEN 100
-        WHEN e_cv.hh_net_worth_under100K THEN 0
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%9%' OR e_cv.`CFINet_Asset_Score` LIKE '%10%' THEN 9
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%8%' THEN 8
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%7%' THEN 7
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%6%' THEN 6
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%5%' THEN 5
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%4%' THEN 4
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%3%' THEN 3
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%2%' THEN 2
+        WHEN e_cv.`CFINet_Asset_Score` LIKE '%1%' THEN 1
         ELSE NULL
-    END AS NET_WORTH,
+    END AS NET_WORTH_BUCKET,
 
-    CASE
-        WHEN e_cv.hh_net_worth_50M_plus THEN '50000000+'
-        WHEN e_cv.hh_net_worth_20M_50M THEN '20000000-49999999'
-        WHEN e_cv.hh_net_worth_10M_20M THEN '10000000-19999999'
-        WHEN e_cv.hh_net_worth_5M_10M THEN '5000000-9999999'
-        WHEN e_cv.hh_net_worth_2M_5M THEN '2000000-4999999'
-        WHEN e_cv.hh_net_worth_1M_2M THEN '1000000-1999999'
-        WHEN e_cv.hh_net_worth_500K_1M THEN '500000-999999'
-        WHEN e_cv.hh_net_worth_100K_500K THEN '100000-499999'
-        WHEN e_cv.hh_net_worth_under100K THEN '0-99999'
-        ELSE NULL
-    END AS NET_WORTH_RANGE,
+    -- Home value
+    e_cv.`RC_Estimated_Home_Value_range_` AS HOME_VALUE_RANGE,
 
-    -- HOME SALE PROPENSITY (from 8 mutually exclusive flags → categorical)
-    CASE
-        WHEN e_cv.homeowner_likely_sell_3mo THEN 'Very Likely (3mo)'
-        WHEN e_cv.homeowner_likely_sell_6mo THEN 'Very Likely (6mo)'
-        WHEN e_cv.homeowner_likely_sell_9mo THEN 'Very Likely (9mo)'
-        WHEN e_cv.homeowner_likely_sell_12mo THEN 'Very Likely (12mo)'
-        WHEN e_cv.home_somewhat_likely_sell_3mo THEN 'Somewhat Likely (3mo)'
-        WHEN e_cv.home_somewhat_likely_sell_6mo THEN 'Somewhat Likely (6mo)'
-        WHEN e_cv.home_somewhat_likely_sell_9mo THEN 'Somewhat Likely (9mo)'
-        WHEN e_cv.home_somewhat_likely_sell_12mo THEN 'Somewhat Likely (12mo)'
-        ELSE NULL
-    END AS HOME_SALE_PROPENSITY,
-
-    -- LUXURY VEHICLE OWNERSHIP (aggregate from luxury car flags)
-    CASE WHEN (
-        e_cv.own_aud_aston_martin OR
-        e_cv.own_aud_bentley OR
-        e_cv.own_aud_ferrari OR
-        e_cv.own_aud_lamborghini OR
-        e_cv.own_aud_maserati OR
-        e_cv.itm_aud_aston_martin OR
-        e_cv.itm_aud_bentley OR
-        e_cv.itm_aud_lamborghini OR
-        e_cv.itm_aud_maserati
-    ) THEN 'Ultra-Luxury'
-    WHEN (
-        e_cv.itm_aud_mercedes_s_class OR
-        e_cv.own_aud_mercedes_amg_gt OR
-        e_cv.own_aud_mercedes_sl_convertible OR
-        e_cv.own_aud_mercedes_g_class
-    ) THEN 'Luxury'
-    ELSE NULL
-    END AS LUXURY_VEHICLE_SEGMENT,
-
-    -- ELECTRIC VEHICLE OWNERSHIP (aggregate from EV flags)
-    CASE WHEN (
-        e_cv.own_aud_tesla_cybertruck_ev OR
-        e_cv.own_aud_rivian_r1t_ev OR
-        e_cv.own_aud_ford_f150_lightning_ev OR
-        e_cv.own_aud_electric_truck
-    ) THEN 'Electric Truck'
-    WHEN (
-        e_cv.own_aud_ev_lucid OR
-        e_cv.own_aud_ev_polestar OR
-        e_cv.own_aud_ev_rivian OR
-        e_cv.own_aud_ev_porsche_taycan OR
-        e_cv.own_aud_ev_bmw_i7 OR
-        e_cv.own_aud_ev_lucid_air OR
-        e_cv.own_aud_ev_audi_etron_gt
-    ) THEN 'Luxury EV'
-    WHEN (
-        e_cv.own_aud_hyundai_ioniq_5_ev OR
-        e_cv.own_aud_hyundai_ioniq_6_ev OR
-        e_cv.own_aud_nissan_ariya_ev OR
-        e_cv.own_aud_volkswagen_id4_ev OR
-        e_cv.own_aud_kia_ev6 OR
-        e_cv.own_aud_kia_ev9 OR
-        e_cv.own_aud_chevrolet_blazer_ev OR
-        e_cv.own_aud_chevrolet_equinox_ev
-    ) THEN 'Mainstream EV'
-    ELSE NULL
-    END AS EV_OWNERSHIP_SEGMENT,
-
-    -- EMPLOYMENT TYPE (aggregate from employment flags)
-    CASE
-        WHEN e_cv.exec_decision_maker OR e_cv.company_founder THEN 'Executive/Founder'
-        WHEN e_cv.employ_public_traded_co THEN 'Public Company Employee'
-        WHEN e_cv.employ_private_held_co THEN 'Private Company Employee'
-        ELSE NULL
-    END AS EMPLOYMENT_TYPE,
+    -- Household size
+    e_cv.DU_size AS NUM_PEOPLE_IN_HOUSEHOLD_GROUP,
 
     -- ============================================================
-    -- MULTI-SELECT FLAGS (keep as-is - households can have multiple)
+    -- CHILDREN DATA
     -- ============================================================
 
-    -- WEALTH & CAREER INDICATORS
-    e_cv.high_wealth_5m_plus,
-    e_cv.receive_high_value_stock,
-    e_cv.recent_promoted_12mo,
-    e_cv.former_expatriate,
+    -- Child age groups (comma-separated)
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`mom_0-3yrs_hh` = 'Y' THEN '0-3' END,
+        CASE WHEN e_cv.`mom_4-6yrs_hh` = 'Y' THEN '4-6' END,
+        CASE WHEN e_cv.mom_tween_hh = 'Y' THEN 'Tween' END,
+        CASE WHEN e_cv.mom_teen_hh = 'Y' THEN 'Teen' END
+    ) AS CHILD_AGE_GROUP,
 
-    -- HIGH SPEND CATEGORIES (~150 flags - keep all)
-    e_cv.rc_airline_travel_high_spend,
-    e_cv.rc_art_deal_gall_high_spend,
-    e_cv.rc_artisit_supply_high_spend,
-    e_cv.rc_auto_lease_repair_high_spend,
-    e_cv.rc_auto_rental_high_spend,
-    e_cv.rc_auto_body_repair_high_spend,
-    e_cv.rc_auto_parts_access_high_spend,
-    e_cv.rc_auto_service_high_spend,
-    e_cv.rc_auto_tire_high_spend,
-    e_cv.rc_bakeries_high_spend,
-    e_cv.rc_band_orch_high_spend,
-    e_cv.rc_barber_salon_high_spend,
-    e_cv.rc_bicycle_shop_service_high_spend,
-    e_cv.rc_book_store_high_spend,
-    e_cv.rc_road_fee_tolls_high_spend,
-    e_cv.rc_building_lumber_high_spend,
-    e_cv.rc_camera_photo_high_spend,
-    e_cv.rc_candy_nut_high_spend,
-    e_cv.rc_car_rentals_high_spend,
-    e_cv.rc_car_washes_high_spend,
-    e_cv.rc_caterers_high_spend,
-    e_cv.rc_clock_watch_silver_high_spend,
-    e_cv.rc_country_club_member_high_spend,
-    e_cv.rc_commercial_equip_high_spend,
-    e_cv.rc_commercial_footwear_high_spend,
-    e_cv.rc_computer_software_high_spend,
-    e_cv.rc_construction_material_high_spend,
-    e_cv.rc_cosmetic_store_high_spend,
-    e_cv.rc_courier_freight_high_spend,
-    e_cv.rc_cruise_steamship_high_spend,
-    e_cv.rc_dating_service_high_spend,
-    e_cv.rc_department_store_high_spend,
-    e_cv.rc_digital_audiovisual_media_high_spend,
-    e_cv.rc_digital_games_high_spend,
-    e_cv.rc_digital_multicategory_high_spend,
-    e_cv.rc_digital_sofware_apps_high_spend,
-    e_cv.rc_direct_marketing_subscription_high_spend,
-    e_cv.rc_direct_marketing_insurance_high_spend,
-    e_cv.rc_discount_store_high_spend,
-    e_cv.rc_drapery_window_high_spend,
-    e_cv.rc_eating_restaurants_high_spend,
-    e_cv.rc_electric_vehicle_charging_high_spend,
-    e_cv.rc_electronic_sales_high_spend,
-    e_cv.rc_equip_home_furn_store_high_spend,
-    e_cv.rc_equip_tool_rental_high_spend,
-    e_cv.rc_family_clothing_store_high_spend,
-    e_cv.rc_fast_food_rest_high_spend,
-    e_cv.rc_floor_covering_high_spend,
-    e_cv.rc_florists_high_spend,
-    e_cv.rc_trucking_moving_high_spend,
-    e_cv.rc_fuel_dispenser_high_spend,
-    e_cv.rc_game_toy_hobby_shop_high_spend,
-    e_cv.rc_novelty_souvenir_high_spend,
-    e_cv.rc_glass_paint_wallpaper_high_spend,
-    e_cv.rc_grocery_supermarket_high_spend,
-    e_cv.rc_hardware_equip_supplies_high_spend,
-    e_cv.rc_hardware_stores_high_spend,
-    e_cv.rc_health_beauty_spa_high_spend,
-    e_cv.rc_home_supply_warehouse_high_spend,
-    e_cv.rc_hotels_high_spend,
-    e_cv.rc_lawn_garden_supply_high_spend,
-    e_cv.rc_leather_luggage_store_high_spend,
-    e_cv.rc_hotel_motel_resorts_high_spend,
-    e_cv.rc_men_boy_clothing_store_high_spend,
-    e_cv.rc_men_women_clothing_store_high_spend,
-    e_cv.rc_men_women_child_uniform_high_spend,
-    e_cv.rc_convenience_vending_high_spend,
-    e_cv.rc_auto_aircraft_farm_equip_high_spend,
-    e_cv.rc_misc_specialty_retail_high_spend,
-    e_cv.rc_movie_theater_high_spend,
-    e_cv.rc_motor_vehicle_supplies_high_spend,
-    e_cv.rc_motorcycle_shop_high_spend,
-    e_cv.rc_music_stores_high_spend,
-    e_cv.rc_office_school_supply_high_spend,
-    e_cv.rc_office_comm_furn_high_spend,
-    e_cv.rc_charitable_organization_high_spend,
-    e_cv.rc_not_classified_org_member_high_spend,
-    e_cv.rc_organizations_political_high_spend,
-    e_cv.rc_beer_wine_liquor_store_high_spend,
-    e_cv.rc_railway_high_spend,
-    e_cv.rc_pet_shop_supplies_high_spend,
-    e_cv.rc_stones_watches_jewelry_high_spend,
-    e_cv.rc_real_estate_agent_rental_high_spend,
-    e_cv.rc_rec_sport_camps_high_spend,
-    e_cv.rc_trucks_trailers_rental_high_spend,
-    e_cv.rc_second_hand_store_high_spend,
-    e_cv.rc_shoe_stores_high_spend,
-    e_cv.rc_sporting_goods_high_spend,
-    e_cv.rc_sport_riding_apparel_high_spend,
-    e_cv.rc_stamp_coin_store_high_spend,
-    e_cv.rc_print_writing_office_supp_high_spend,
-    e_cv.rc_tax_prep_service_high_spend,
-    e_cv.rc_prepaid_phone_high_spend,
-    e_cv.rc_theater_prod_ticket_high_spend,
-    e_cv.rc_timeshares_high_spend,
-    e_cv.rc_tourist_attract_exhibit_high_spend,
-    e_cv.rc_travel_agency_tour_high_spend,
-    e_cv.rc_veterinary_service_high_spend,
-    e_cv.rc_video_game_supply_high_spend,
-    e_cv.rc_video_ent_rental_high_spend,
-    e_cv.rc_arcade_high_spend,
-    e_cv.rc_wholesale_club_high_spend,
-    e_cv.rc_women_access_store_high_spend,
-    e_cv.rc_women_ready_to_wear_high_spend,
+    -- Number of children
+    CASE
+        WHEN e_cv.mom_2child_hh = 'Y' THEN '2+'
+        WHEN e_cv.mom_1chld_hh = 'Y' THEN '1'
+        ELSE NULL
+    END AS NUMBER_OF_CHILDREN,
 
-    -- VEHICLE INTEREST/OWNERSHIP (~200 flags)
-    -- Note: EV flags used in EV_OWNERSHIP_SEGMENT and luxury flags used in LUXURY_VEHICLE_SEGMENT are dropped per bucketing strategy
-    e_cv.itm_aud_hybrid_toyota_camry,
-    e_cv.itm_aud_hybrid_toyota_corolla,
-    e_cv.itm_aud_hybrid_honda_crv,
-    e_cv.itm_aud_hybrid_mitsu_outlander_phev,
-    e_cv.itm_aud_hybrid_toyota_highlander,
-    e_cv.itm_aud_hybrid_toyota_rav4,
-    e_cv.itm_aud_infiniti_qx55,
-    e_cv.own_aud_ford_maverick,
-    e_cv.own_aud_kia_k4,
-    e_cv.own_aud_mini_countryman_crossover,
-    e_cv.own_aud_toyota_corolla_cross,
-    e_cv.own_aud_jeep_grand_wagoneer,
-    e_cv.own_aud_mini_clubman,
-    e_cv.own_aud_hybrid_toyota_venza,
-    e_cv.own_aud_hybrid_honda_hybrid,
-    e_cv.own_aud_hybrid_toyota_camry,
-    e_cv.own_aud_hybrid_toyota_corolla,
-    e_cv.own_aud_hybrid_honda_crv,
-    e_cv.own_aud_hybrid_mistubishi_outlander_phev,
-    e_cv.own_aud_hybrid_toyota_highlander,
-    e_cv.own_aud_hybrid_toyota_rav4,
-    -- Note: Ultra-luxury and luxury vehicle flags (used in LUXURY_VEHICLE_SEGMENT) dropped
-    -- Note: Luxury EV flags (used in EV_OWNERSHIP_SEGMENT) dropped
-    e_cv.own_aud_hybrid_alfa_romeo_tonale,
-    e_cv.own_aud_hybrid_bmw_xm,
-    e_cv.own_aud_hybrid_lexus_rx,
-    e_cv.own_aud_chrysler_voyager,
-    e_cv.own_aud_sedan_audi_s5_sportback,
-    e_cv.own_aud_sedan_audi_s6,
-    e_cv.own_aud_sedan_bmw_m5,
-    e_cv.own_aud_sedan_cadillac_ct5,
-    e_cv.own_aud_sedan_genesis_g90,
-    e_cv.own_aud_sedan_jaguar_xe,
-    e_cv.own_aud_sedan_mercedes_cls,
-    e_cv.own_aud_sedan_volvo_s90,
-    e_cv.own_aud_acura_integra,
-    e_cv.own_aud_bmw_8_series,
-    e_cv.own_aud_bmw_car_m8,
-    e_cv.own_aud_jaguar_ftype,
-    -- Note: own_aud_lamborghini dropped (used in LUXURY_VEHICLE_SEGMENT)
-    e_cv.own_aud_lexus_lc,
-    e_cv.own_aud_porsche_718_boxster,
-    e_cv.own_aud_porsche_718_cayman,
-    e_cv.own_aud_bmw_m2,
-    e_cv.own_aud_bmw_m4,
-    e_cv.own_aud_bmw_coupe_m8,
-    e_cv.own_aud_audi_rs_q8,
-    e_cv.own_aud_audi_sq7,
-    e_cv.own_aud_audi_sq8,
-    e_cv.own_aud_buick_encore_gx,
-    e_cv.own_aud_cadillac_escalade_esv,
-    e_cv.own_aud_cadillac_escalade_v,
-    e_cv.own_aud_cadillac_lyriq,
-    e_cv.own_aud_sports_bmw_m_models,
-    e_cv.own_aud_genesis_gv70,
-    e_cv.own_aud_jeep_wagoneer,
-    e_cv.own_aud_land_rover_defender,
-    e_cv.own_aud_lexus_tx,
-    e_cv.own_aud_mercedes_eqe,
-    e_cv.own_aud_mercedes_g_class,
-    e_cv.own_aud_mercedes_gla,
-    e_cv.own_aud_mercedes_glb,
-    -- Note: own_aud_mercedes_eqs dropped (luxury EV, used in EV_OWNERSHIP_SEGMENT)
-    e_cv.own_aud_kia_sportage_phev,
-    e_cv.own_aud_toyota_rav4_phev,
-    e_cv.own_aud_bmw_m3,
-    e_cv.own_aud_toyota_crown,
-    e_cv.own_aud_toyota_gr_corolla,
-    e_cv.own_aud_toyota_gr86,
-    e_cv.own_aud_volkswagen_golf_gti,
-    e_cv.own_aud_volkswagen_golf_r,
-    e_cv.own_aud_subaru_brz,
-    -- Note: own_aud_chevrolet_blazer_ev, own_aud_chevrolet_equinox_ev dropped (mainstream EVs, used in EV_OWNERSHIP_SEGMENT)
-    e_cv.own_aud_dodge_hornet,
-    e_cv.own_aud_ford_bronco_sport,
-    e_cv.own_aud_hybrid_hyundai_santa_fe,
-    e_cv.own_aud_hybrid_hyundai_tuscon,
-    -- Note: own_aud_kia_ev6, own_aud_kia_ev9 dropped (mainstream EVs, used in EV_OWNERSHIP_SEGMENT)
-    e_cv.own_aud_mazda_cx50,
-    e_cv.own_aud_mazda_cx70,
-    e_cv.own_aud_mazda_cx90,
-    e_cv.own_aud_mitsubishi_eclipse_cross,
-    e_cv.own_aud_toyota_grand_highlander,
-    e_cv.own_aud_toyota_land_cruiser,
-    e_cv.own_aud_mercedes_sprinter,
-    e_cv.own_aud_ram_promaster,
-    e_cv.own_aud_volvo_v60_cross_country,
-    e_cv.own_aud_volvo_v90_cross_country,
-    e_cv.own_aud_motorcycle_aprilia,
-    e_cv.own_aud_motorcycle_ducati,
-    e_cv.own_aud_motorcycle_ktm,
-    e_cv.own_aud_motorcycle_suzuki,
-    e_cv.own_aud_motorcycle_triumph,
-    -- Note: Luxury vehicle flags dropped (own_aud_mercedes_sl_convertible, own_aud_mercedes_amg_gt - used in LUXURY_VEHICLE_SEGMENT)
-    e_cv.own_aud_hybrid_hyundai_tuscon_phev,
-    e_cv.itm_aud_motorcycle_aprilia,
-    -- Note: Ultra-luxury and luxury interest flags dropped (itm_aud_mercedes_amg_gt, itm_aud_aston_martin, itm_aud_bentley, itm_aud_lamborghini, itm_aud_maserati, itm_aud_mercedes_s_class - used in LUXURY_VEHICLE_SEGMENT)
-    e_cv.itm_aud_ev_audi_etron_gt,
-    e_cv.itm_aud_ev_bmw_i4,
-    e_cv.itm_aud_ev_bmw_i5,
-    e_cv.itm_aud_ev_bmw_i7,
-    e_cv.itm_aud_ev_lucid_air,
-    e_cv.itm_aud_ev_mercedes_eqe,
-    e_cv.itm_aud_ev_audi_q4_etron,
-    e_cv.itm_aud_ev_audi_q8_etron,
-    e_cv.itm_aud_ev_bmw_ix,
-    e_cv.itm_aud_ev_cadillac_lyriq,
-    e_cv.itm_aud_ev_lexus_rz,
-    e_cv.itm_aud_ev_mercedes_eqs,
-    e_cv.itm_aud_ev_rivian_r1s,
-    e_cv.itm_aud_ev_rivian_r1t,
-    e_cv.itm_aud_ev_tesla_cybertruck,
-    e_cv.itm_aud_liftback_polestar2,
-    e_cv.itm_aud_alfa_romeo_giulia,
-    e_cv.itm_aud_audi_a3,
-    e_cv.itm_aud_audi_a5_sportback,
-    e_cv.itm_aud_audi_a6,
-    e_cv.itm_aud_bmw_7_series,
-    e_cv.itm_aud_bmw_m3,
-    e_cv.itm_aud_genesis_g80,
-    e_cv.itm_aud_genesis_g90,
-    e_cv.itm_aud_lexus_ls,
-    e_cv.itm_aud_volvo_s60,
-    e_cv.itm_aud_audi_s5_sportback,
-    e_cv.itm_aud_bmw_8_series,
-    e_cv.itm_aud_bmw_m_models,
-    e_cv.itm_aud_bmw_m2,
-    e_cv.itm_aud_bmw_m4,
-    e_cv.itm_aud_lexus_lc,
-    e_cv.itm_aud_mercedes_cle,
-    e_cv.itm_aud_porsche_718_boxster,
-    e_cv.itm_aud_porsche_718_cayman,
-    e_cv.itm_aud_porsche_panamera,
-    e_cv.itm_aud_porsche_taycan,
-    e_cv.itm_aud_mercedes_sl_class,
-    e_cv.itm_aud_mini_clubman,
-    e_cv.itm_aud_alfa_romeo_stelvio,
-    e_cv.itm_aud_alfa_romeo_tonale,
-    e_cv.itm_aud_audi_q8,
-    e_cv.itm_aud_audi_rs_q8,
-    e_cv.itm_aud_audi_sq5,
-    e_cv.itm_aud_audi_sq7,
-    e_cv.itm_aud_bmw_x4,
-    e_cv.itm_aud_bmw_xm,
-    e_cv.itm_aud_buick_encore_gx,
-    e_cv.itm_aud_buick_envista,
-    e_cv.itm_aud_cadillac_escalade_esv,
-    e_cv.itm_aud_cadillac_escalade_v,
-    e_cv.itm_aud_jeep_grand_wagoneer,
-    e_cv.itm_aud_land_rover_discovery,
-    e_cv.itm_aud_land_rover_discovery_sport,
-    e_cv.itm_aud_land_rover_evoque,
-    e_cv.itm_aud_lexus_rx_hybrid,
-    e_cv.itm_aud_lexus_tx,
-    e_cv.itm_aud_lexus_ux,
-    e_cv.itm_aud_mercedes_g_class,
-    e_cv.itm_aud_mercedes_gla,
-    e_cv.itm_aud_mini_countryman,
-    e_cv.itm_aud_cadillac_ct5,
-    e_cv.itm_aud_toyota_land_cruiser,
-    e_cv.itm_aud_mercedes_sprinter,
-    e_cv.itm_aud_plugin_hybrid_toyota_rav4,
-    e_cv.itm_aud_hybrid_honda_accord,
-    e_cv.itm_aud_kia_k4,
-    e_cv.itm_aud_toyota_crown,
-    e_cv.itm_aud_toyota_gr86,
-    e_cv.itm_aud_acura_integra,
-    e_cv.itm_aud_volkswagen_golf_gti,
-    e_cv.itm_aud_volkswagen_golf_r,
-    e_cv.itm_aud_subaru_brz,
-    e_cv.itm_aud_toyota_gr_corolla,
-    e_cv.itm_aud_bmw_x6,
-    e_cv.itm_aud_chevrolet_blazer_ev,
-    e_cv.itm_aud_chevrolet_equinox_ev,
-    e_cv.itm_aud_dodge_hornet,
-    e_cv.itm_aud_ford_bronco_sport,
-    e_cv.itm_aud_hybrid_hyundai_santa_fe,
-    e_cv.itm_aud_hybrid_hyundai_tucson,
-    e_cv.itm_aud_hyundai_tucson_phev,
-    e_cv.itm_aud_kia_sportage_phev,
-    e_cv.itm_aud_lexus_lx,
-    e_cv.itm_aud_mazda_cx_50,
-    e_cv.itm_aud_mazda_cx_70,
-    e_cv.itm_aud_mazda_cx_90,
-    e_cv.itm_aud_mitsubishi_eclipse_cross,
-    e_cv.itm_aud_nissan_ariya,
-    e_cv.itm_aud_toyota_corolla_cross,
-    e_cv.itm_aud_toyota_grand_highlander,
-    e_cv.itm_aud_ford_maverick,
-    e_cv.itm_aud_gmc_hummer_ev,
-    e_cv.itm_aud_ram_promaster,
+    -- Presence of children
+    CASE
+        WHEN e_cv.`mom_0-3yrs_hh` = 'Y' OR e_cv.`mom_4-6yrs_hh` = 'Y' OR e_cv.mom_tween_hh = 'Y' OR e_cv.mom_teen_hh = 'Y' OR e_cv.mom_1chld_hh = 'Y' OR e_cv.mom_2child_hh = 'Y' THEN 1
+        ELSE 0
+    END AS PRESENCE_OF_CHILDREN,
 
-    -- SHOPPING BEHAVIORS (~100 flags - keep all)
-    e_cv.hand_body_lotion_shop,
-    e_cv.body_wash_shop,
-    e_cv.liquid_hand_soap_shop,
-    e_cv.eye_shadow_shop,
-    e_cv.mascara_shop,
-    e_cv.facial_cleaner_shop,
-    e_cv.facial_cosmetic_shop,
-    e_cv.foundation_shop,
-    e_cv.lipstick_shop,
-    e_cv.facial_moisturizer_shop,
-    e_cv.facial_anti_aging_shop,
-    e_cv.lip_balm_shop,
-    e_cv.shaving_mens_frag_shop,
-    e_cv.hair_access_shop,
-    e_cv.hair_color_shop,
-    e_cv.styling_prod_shop,
-    e_cv.shaving_cream_shop,
-    e_cv.nail_polish_shop,
-    e_cv.gift_card_shop,
-    e_cv.baby_food_shop,
-    e_cv.bagel_bialys_shop,
-    e_cv.cupcake_brownie_shop,
-    e_cv.fresh_bread_shop,
-    e_cv.hamb_hot_dog_bun_shop,
-    e_cv.donut_shop,
-    e_cv.frosting_shop,
-    e_cv.brownie_mix_shop,
-    e_cv.pancake_waffle_shop,
-    e_cv.olive_oil_shop,
-    e_cv.ready_pie_crust_shop,
-    e_cv.sugar_shop,
-    e_cv.sugar_substitute_shop,
-    e_cv.beer_ale_cider_shop,
-    e_cv.low_cal_soft_drink_shop,
-    e_cv.regular_soft_drink_shop,
-    e_cv.cocktail_mix_shop,
-    e_cv.ground_coffee_shop,
-    e_cv.instant_coffee_shop,
-    e_cv.single_cup_coffee_shop,
-    e_cv.tea_bag_loose_shop,
-    e_cv.can_bottle_tea_shop,
-    e_cv.energy_drink_shop,
-    e_cv.sports_drink_shop,
-    e_cv.bottle_water_shop,
-    e_cv.sparkle_water_shop,
-    e_cv.cereal_energy_bar_shop,
-    e_cv.cold_cereal_shop,
-    e_cv.english_muffin_shop,
-    e_cv.hot_cereal_oatmeal_shop,
-    e_cv.toaster_pastry_shop,
-    e_cv.chocolate_shop,
-    e_cv.choc_candy_shop,
-    e_cv.sugarless_gum_shop,
-    e_cv.gummy_chewy_snack_shop,
-    e_cv.hard_candy_shop,
-    e_cv.marshmallow_shop,
-    e_cv.mint_candy_shop,
-    e_cv.ramen_shop,
-    e_cv.ready_soup_shop,
-    e_cv.bbq_sauce_shop,
-    e_cv.frozen_pizza_shop,
-    e_cv.steak_sauce_shop,
-    e_cv.honey_shop,
-    e_cv.ketchup_shop,
-    e_cv.mayo_sand_spread_shop,
-    e_cv.mustard_shop,
-    e_cv.peanut_butter_shop,
-    e_cv.special_nut_butter_shop,
-    e_cv.olive_shop,
-    e_cv.pickle_shop,
-    e_cv.salad_dressing_shop,
-    e_cv.syrup_shop,
-    e_cv.cookie_shop,
-    e_cv.cracker_shop,
-    e_cv.dip_spread_shop,
-    e_cv.dried_meat_jerky_shop,
-    e_cv.salty_snack_shop,
-    e_cv.potato_chip_shop,
-    e_cv.pretzel_shop,
-    e_cv.tortilla_chip_shop,
-    e_cv.margarine_shop,
-    e_cv.butter_shop,
-    e_cv.cream_cheese_shop,
-    e_cv.cheese_slices_shop,
-    e_cv.cheese_string_shop,
-    e_cv.refrig_coffee_cream_shop,
-    e_cv.shelf_coffee_cream_shop,
-    e_cv.milk_shop,
-    e_cv.refrig_almond_milk_shop,
-    e_cv.refrig_skim_milk_shop,
-    e_cv.refrig_whole_milk_shop,
-    e_cv.yogurt_shop,
-    e_cv.deli_meat_shop,
-    e_cv.tortilla_taco_kit_shop,
-    e_cv.salsa_shop,
-    e_cv.fruit_shop,
-    e_cv.frozen_food_shop,
-    e_cv.frozen_waffle_shop,
-    e_cv.frozen_meal_shop,
-    e_cv.frozen_potato_shop,
-    e_cv.frozen_seafood_shop,
-    e_cv.ice_cream_shop,
-    e_cv.frozen_meat_shop,
-    e_cv.bacon_shop,
-    e_cv.dinner_sausage_shop,
-    e_cv.hot_dog_shop,
-    e_cv.pork_shop,
-    e_cv.instant_potato_shop,
-    e_cv.mac_cheese_shop,
-    e_cv.refrig_entree_shop,
-    e_cv.refrig_lunch_shop,
-    e_cv.refrig_sides_shop,
-    e_cv.prepared_chili_shop,
-    e_cv.spag_pasta_shop,
-    e_cv.dry_rice_shop,
-    e_cv.nutrition_weight_shop,
-    e_cv.mouthwash_shop,
-    e_cv.dental_floss_shop,
-    e_cv.toothpaste_shop,
-    e_cv.suntan_lotion_shop,
-    e_cv.multi_vitamin_shop,
-    e_cv.charcoal_shop,
-    e_cv.air_freshener_shop,
-    e_cv.dispos_plates_shop,
-    e_cv.dish_detergent_shop,
-    e_cv.storage_bag_shop,
-    e_cv.all_purpose_cleaner_shop,
-    e_cv.laundry_detergent_shop,
-    e_cv.pest_control_shop,
-    e_cv.outdoor_insect_pest_shop,
-    e_cv.cat_litter_shop,
-    e_cv.wet_cat_food_shop,
-    e_cv.dry_dog_food_shop,
-    e_cv.wet_dog_food_shop,
-    e_cv.other_pet_food_shop,
+    -- ============================================================
+    -- INTERESTS (comma-separated aggregations)
+    -- ============================================================
+
+    -- General interests
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`RC_ActInt_Arts_and_Crafts` = 'Y' THEN 'Arts & Crafts' END,
+        CASE WHEN e_cv.`RC_ActInt_Audio_Book_Listener` = 'Y' THEN 'Audio Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Book_Reader` = 'Y' THEN 'Reading' END,
+        CASE WHEN e_cv.`RC_ActInt_Cat_Owners` = 'Y' THEN 'Cat Owner' END,
+        CASE WHEN e_cv.`RC_ActInt_Coffee_Connoisseurs` = 'Y' THEN 'Coffee' END,
+        CASE WHEN e_cv.`RC_ActInt_Cultural_Arts` = 'Y' THEN 'Cultural Arts' END,
+        CASE WHEN e_cv.`RC_ActInt_Dog_Owners` = 'Y' THEN 'Dog Owner' END,
+        CASE WHEN e_cv.`RC_ActInt_Do-it-yourselfers` = 'Y' THEN 'DIY' END,
+        CASE WHEN e_cv.`RC_ActInt_E-Book_Reader` = 'Y' THEN 'E-Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Fitness_Enthusiast` = 'Y' THEN 'Fitness' END,
+        CASE WHEN e_cv.`RC_ActInt_Gourmet_Cooking` = 'Y' THEN 'Gourmet Cooking' END,
+        CASE WHEN e_cv.`RC_ActInt_Healthy_Living` = 'Y' THEN 'Healthy Living' END,
+        CASE WHEN e_cv.`RC_ActInt_Home_Improvement_Spenders` = 'Y' THEN 'Home Improvement' END,
+        CASE WHEN e_cv.`RC_ActInt_Music_Download` = 'Y' THEN 'Music Download' END,
+        CASE WHEN e_cv.`RC_ActInt_Music_Streaming` = 'Y' THEN 'Music Streaming' END,
+        CASE WHEN e_cv.`RC_ActInt_Outdoor_Enthusiast` = 'Y' THEN 'Outdoors' END,
+        CASE WHEN e_cv.`RC_ActInt_Pet_Enthusiast` = 'Y' THEN 'Pets' END,
+        CASE WHEN e_cv.`RC_ActInt_Photography` = 'Y' THEN 'Photography' END,
+        CASE WHEN e_cv.`RC_ActIntVideo_Gamer` = 'Y' THEN 'Video Games' END,
+        CASE WHEN e_cv.`RC_ActInt_Wine_Lovers` = 'Y' THEN 'Wine' END,
+        CASE WHEN e_cv.`RC_Hobbies_Gardening` = 'Y' THEN 'Gardening' END
+    ) AS GENERAL_INTERESTS,
+
+    -- Sports interests
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`RC_ActInt_Avid_Runners` = 'Y' THEN 'Running' END,
+        CASE WHEN e_cv.`RC_ActInt_Boating` = 'Y' THEN 'Boating' END,
+        CASE WHEN e_cv.`RC_ActInt_Fishing` = 'Y' THEN 'Fishing' END,
+        CASE WHEN e_cv.`RC_ActInt_Hunting_Enthusiasts` = 'Y' THEN 'Hunting' END,
+        CASE WHEN e_cv.`RC_ActIntMLB_Enthusiast` = 'Y' THEN 'MLB' END,
+        CASE WHEN e_cv.`RC_ActIntNASCAR_Enthusiast` = 'Y' THEN 'NASCAR' END,
+        CASE WHEN e_cv.`RC_ActIntNBA_Enthusiast` = 'Y' THEN 'NBA' END,
+        CASE WHEN e_cv.`RC_ActIntNFL_Enthusiast` = 'Y' THEN 'NFL' END,
+        CASE WHEN e_cv.`RC_ActIntNHL_Enthusiast` = 'Y' THEN 'NHL' END,
+        CASE WHEN e_cv.`RC_ActIntPGA_Tour_Enthusiast` = 'Y' THEN 'Golf/PGA' END,
+        CASE WHEN e_cv.`RC_ActIntPlay_Golf` = 'Y' THEN 'Golf' END,
+        CASE WHEN e_cv.`RC_ActInt_Plays_Hockey` = 'Y' THEN 'Hockey' END,
+        CASE WHEN e_cv.`RC_ActInt_Plays_Soccer` = 'Y' THEN 'Soccer' END,
+        CASE WHEN e_cv.`RC_ActInt_Plays_Tennis` = 'Y' THEN 'Tennis' END,
+        CASE WHEN e_cv.`RC_ActInt_Snow_Sports` = 'Y' THEN 'Snow Sports' END,
+        CASE WHEN e_cv.`RC_ActInt_Sports_Enthusiast` = 'Y' THEN 'Sports General' END,
+        CASE WHEN e_cv.`RC_ActIntCanoeingKayaking` = 'Y' THEN 'Canoeing/Kayaking' END
+    ) AS SPORTS_INTERESTS,
+
+    -- Reading interests
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`RC_ActInt_Book_Reader` = 'Y' THEN 'Books' END,
+        CASE WHEN e_cv.`RC_ActInt_E-Book_Reader` = 'Y' THEN 'E-Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Audio_Book_Listener` = 'Y' THEN 'Audio Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Digital_MagazineNewspapers_Buyers` = 'Y' THEN 'Digital Magazines' END
+    ) AS READING_INTERESTS,
+
+    -- Travel interests
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Business_Traveler` = 'Y' THEN 'Business Travel' END,
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Cruise_Enthusiast` = 'Y' THEN 'Cruises' END,
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Domestic_Vacationer` = 'Y' THEN 'Domestic Vacation' END,
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Foreign_Vacationer` = 'Y' THEN 'Foreign Vacation' END,
+        CASE WHEN e_cv.`RC_Lifestyle_Frequent_Flyer_Program_Member` = 'Y' THEN 'Frequent Flyer' END,
+        CASE WHEN e_cv.`RC_Lifestyle_Hotel_Guest_Loyalty_Program` = 'Y' THEN 'Hotel Loyalty' END,
+        CASE WHEN e_cv.`RC_ActInt_Amusement_Park_Visitors` = 'Y' THEN 'Amusement Parks' END,
+        CASE WHEN e_cv.`RC_ActInt_Zoo_Visitors` = 'Y' THEN 'Zoos' END
+    ) AS TRAVEL_INTERESTS,
+
+    -- ============================================================
+    -- VEHICLE DATA (comma-separated aggregations)
+    -- ============================================================
+
+    -- Vehicle makes owned
+    CONCAT_WS(',',
+        CASE WHEN e_cv.Auto_Seg_Own_Ford = 'Y' THEN 'Ford' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Chevrolet = 'Y' THEN 'Chevrolet' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Toyota = 'Y' THEN 'Toyota' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Honda = 'Y' THEN 'Honda' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Nissan = 'Y' THEN 'Nissan' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Jeep = 'Y' THEN 'Jeep' END,
+        CASE WHEN e_cv.Auto_Seg_Own_GMC = 'Y' THEN 'GMC' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Hyundai = 'Y' THEN 'Hyundai' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Kia = 'Y' THEN 'Kia' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Subaru = 'Y' THEN 'Subaru' END,
+        CASE WHEN e_cv.Auto_Seg_Own_BMW = 'Y' THEN 'BMW' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Mercedes_Benz = 'Y' THEN 'Mercedes-Benz' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Lexus = 'Y' THEN 'Lexus' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Audi = 'Y' THEN 'Audi' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Mazda = 'Y' THEN 'Mazda' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Volkswagen = 'Y' THEN 'Volkswagen' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Dodge = 'Y' THEN 'Dodge' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Ram = 'Y' THEN 'Ram' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Chrysler = 'Y' THEN 'Chrysler' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Buick = 'Y' THEN 'Buick' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Cadillac = 'Y' THEN 'Cadillac' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Acura = 'Y' THEN 'Acura' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Infiniti = 'Y' THEN 'Infiniti' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Lincoln = 'Y' THEN 'Lincoln' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Volvo = 'Y' THEN 'Volvo' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Tesla = 'Y' THEN 'Tesla' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Porsche = 'Y' THEN 'Porsche' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Land_Rover = 'Y' THEN 'Land Rover' END
+    ) AS VEHICLE_MAKES,
+
+    -- Vehicle styles
+    CONCAT_WS(',',
+        CASE WHEN e_cv.Auto_Seg_Own_Car = 'Y' THEN 'Car' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Suv_Cuv = 'Y' THEN 'SUV/CUV' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Suv = 'Y' THEN 'SUV' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Cuv = 'Y' THEN 'CUV' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Truck = 'Y' THEN 'Truck' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Van_Minivan = 'Y' THEN 'Van/Minivan' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Minivan = 'Y' THEN 'Minivan' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Sports_Car = 'Y' THEN 'Sports Car' END
+    ) AS VEHICLE_STYLES,
+
+    -- Vehicle class (luxury, etc.)
+    CONCAT_WS(',',
+        CASE WHEN e_cv.Auto_Seg_Own_Luxury_Car = 'Y' THEN 'Luxury Car' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Luxury_Suv = 'Y' THEN 'Luxury SUV' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Luxury_Cuv = 'Y' THEN 'Luxury CUV' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Midsize_Car = 'Y' THEN 'Midsize Car' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Comp_Car = 'Y' THEN 'Compact Car' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Full_Size_Car = 'Y' THEN 'Full Size Car' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Full_Size_Truck = 'Y' THEN 'Full Size Truck' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Full_Size_Suv = 'Y' THEN 'Full Size SUV' END
+    ) AS VEHICLE_CLASS,
+
+    -- Fuel type
+    CONCAT_WS(',',
+        CASE WHEN e_cv.Own_Electric_Y = 'Y' THEN 'Electric' END,
+        CASE WHEN e_cv.Own_Hybrid_Y = 'Y' THEN 'Hybrid' END,
+        CASE WHEN e_cv.Auto_Seg_Own_Alt_Fuel_Car = 'Y' THEN 'Alt Fuel' END
+    ) AS FUEL_CODE,
+
+    -- ============================================================
+    -- FINANCIAL DATA
+    -- ============================================================
+
+    -- Financial health
+    e_cv.Fin_Ability_to_Pay AS FINANCIAL_HEALTH_BUCKET,
+
+    -- Credit card info
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`RC_Financial_Credit_Card_User` = 'Y' THEN 'Credit Card User' END,
+        CASE WHEN e_cv.`RC_Financial_Premium_Credit_Card_User` = 'Y' THEN 'Premium Card' END,
+        CASE WHEN e_cv.`RC_Financial_Corporate_Credit_Card_User` = 'Y' THEN 'Corporate Card' END,
+        CASE WHEN e_cv.`RC_Financial_Debit_Card_User` = 'Y' THEN 'Debit Card' END,
+        CASE WHEN e_cv.`RC_Financial_Store_Credit_Card_User` = 'Y' THEN 'Store Card' END,
+        CASE WHEN e_cv.`RC_Financial_Major_Credit_Card_User` = 'Y' THEN 'Major Card' END
+    ) AS CREDIT_CARD_INFO,
+
+    -- Investment types
+    CONCAT_WS(',',
+        CASE WHEN e_cv.`RC_Invest_Active_Investor` = 'Y' THEN 'Active Investor' END,
+        CASE WHEN e_cv.`RC_Invest_Brokerage_Account_Owner` = 'Y' THEN 'Brokerage Account' END,
+        CASE WHEN e_cv.`RC_Invest_Mutual_Fund_Investor` = 'Y' THEN 'Mutual Funds' END,
+        CASE WHEN e_cv.`RC_InvestHave_Retirement_Plan` = 'Y' THEN 'Retirement Plan' END,
+        CASE WHEN e_cv.`RC_InvestOnline_Trading` = 'Y' THEN 'Online Trading' END
+    ) AS INVESTMENT_TYPE,
 
     -- Processing Metadata
     CURRENT_TIMESTAMP() AS DBT_UPDATED_AT
 
 FROM one_luid_per_household olh
-LEFT JOIN {{ source('locality_poc_share_silver', 'experian_consumerview') }} e_cv
+LEFT JOIN {{ source('locality_poc_share_silver', 'experian_consumerview2') }} e_cv
     ON olh.luid = e_cv.recd_luid

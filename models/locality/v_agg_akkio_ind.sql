@@ -10,11 +10,10 @@
     Locality Individual Aggregation Table
 
     Purpose: Individual-level aggregation of demographic attributes for analytics.
-    Source: akkio_attributes_latest
-    Grain: One row per AKKIO_ID (household in this dataset)
+    Source: akkio_attributes_latest (now with real ConsumerView2 data)
+    Grain: One row per AKKIO_ID (household)
 
     Note: Like vizio, this is household-level data formatted for insights compatibility.
-    Individual demographics (age, gender, etc.) are not available in Experian Consumerview.
 */
 
 SELECT
@@ -22,10 +21,12 @@ SELECT
     attr.AKKIO_ID,
     attr.AKKIO_HH_ID,
 
-    -- Weight (fixed at 11.0 per requirements - FLOAT type for insights)
-    11.0 AS WEIGHT,
+    -- Weight (1.0 for equal weighting - FLOAT type required for insights)
+    1.0 AS WEIGHT,
 
-    -- Individual Demographics (COALESCE NULLs to defaults for insights compatibility)
+    -- ============================================================
+    -- INDIVIDUAL DEMOGRAPHICS (real data from ConsumerView2)
+    -- ============================================================
     COALESCE(attr.GENDER, 'UNDETERMINED') AS GENDER,
     attr.AGE,
     attr.AGE_BUCKET,
@@ -33,14 +34,45 @@ SELECT
     COALESCE(attr.EDUCATION_LEVEL, 'Unknown') AS EDUCATION,
     COALESCE(attr.MARITAL_STATUS, 'Unknown') AS MARITAL_STATUS,
     COALESCE(NULLIF(attr.STATE, ''), 'Unknown') AS STATE,
+    CAST(NULL AS STRING) AS ZIP_CODE,
 
-    -- Household-level attributes (from Experian)
-    attr.HOME_OWNERSHIP AS HOMEOWNER,
-    attr.INCOME AS INCOME,
-    attr.INCOME_RANGE AS INCOME_BUCKET,
-    RIGHT(attr.ZIP11, 5) AS ZIP_CODE,
+    -- Occupation
+    attr.OCCUPATION,
 
-    COALESCE(CAST(attr.NET_WORTH_RANGE AS STRING), 'Unknown') AS NET_WORTH_BUCKET,
+    -- ============================================================
+    -- HOUSEHOLD ATTRIBUTES
+    -- ============================================================
+    CASE
+        WHEN attr.HOME_OWNERSHIP LIKE '%Owner%' THEN 1
+        WHEN attr.HOME_OWNERSHIP LIKE '%Rent%' THEN 0
+        ELSE NULL
+    END AS HOMEOWNER,
+    attr.INCOME,
+    attr.INCOME_BUCKET,
+    attr.NET_WORTH_BUCKET,
+
+    -- ============================================================
+    -- INTERESTS (comma-separated strings)
+    -- ============================================================
+    attr.GENERAL_INTERESTS,
+    attr.SPORTS_INTERESTS,
+    attr.READING_INTERESTS,
+    attr.TRAVEL_INTERESTS,
+
+    -- ============================================================
+    -- VEHICLE DATA (comma-separated strings)
+    -- ============================================================
+    attr.VEHICLE_MAKES AS MAKE,
+    attr.VEHICLE_STYLES AS VEHICLE_STYLE,
+    attr.VEHICLE_CLASS,
+    attr.FUEL_CODE,
+
+    -- ============================================================
+    -- FINANCIAL DATA
+    -- ============================================================
+    attr.FINANCIAL_HEALTH_BUCKET,
+    attr.CREDIT_CARD_INFO,
+    attr.INVESTMENT_TYPE,
 
     -- Contact identifiers (NULL strings for insights compatibility)
     CAST(NULL AS STRING) AS MAIDS,

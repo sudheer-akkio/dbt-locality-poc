@@ -10,7 +10,7 @@
     Locality Household Aggregation Table
 
     Purpose: Household-level aggregation of demographic attributes for analytics (Insights compatibility).
-    Source: akkio_attributes_latest
+    Source: akkio_attributes_latest (now with real ConsumerView2 data)
     Grain: One row per AKKIO_HH_ID (household)
 
     Note: Since AKKIO_HH_ID = AKKIO_ID in the source, this is currently 1:1,
@@ -21,15 +21,34 @@ SELECT
     -- Primary Key
     attr.AKKIO_HH_ID,
 
-    -- Weight (fixed at 11.0 per requirements - FLOAT type for insights)
-    11.0 AS WEIGHT,
+    -- Weight (1.0 for equal weighting - FLOAT type required for insights)
+    1.0 AS WEIGHT,
+    1.0 AS HH_WEIGHT,  -- Alias for backwards compatibility with Insights queries
 
-    -- Home Ownership (required for HOMEOWNERSHIP insight)
-    attr.HOME_OWNERSHIP AS HOMEOWNER,
+    -- ============================================================
+    -- HOME OWNERSHIP & INCOME
+    -- ============================================================
+    CASE
+        WHEN attr.HOME_OWNERSHIP LIKE '%Owner%' THEN 1
+        WHEN attr.HOME_OWNERSHIP LIKE '%Rent%' THEN 0
+        ELSE NULL
+    END AS HOMEOWNER,
 
-    -- Household Income (required for INCOME insight)
     attr.INCOME,
-    attr.INCOME_RANGE AS INCOME_BUCKET,
+    attr.INCOME_BUCKET,
+
+    -- ============================================================
+    -- CHILDREN DATA
+    -- ============================================================
+    attr.CHILD_AGE_GROUP,
+    attr.NUMBER_OF_CHILDREN,
+    attr.PRESENCE_OF_CHILDREN,
+
+    -- ============================================================
+    -- HOUSEHOLD SIZE & HOME VALUE
+    -- ============================================================
+    attr.NUM_PEOPLE_IN_HOUSEHOLD_GROUP,
+    attr.HOME_VALUE_RANGE AS MEDIAN_HOME_VALUE_BY_STATE,
 
     -- Temporal
     attr.PARTITION_DATE
