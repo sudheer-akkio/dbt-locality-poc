@@ -42,9 +42,10 @@ SELECT
     -- ============================================================
     -- HOUSEHOLD ATTRIBUTES
     -- ============================================================
-    CASE
-        WHEN attr.HOME_OWNERSHIP LIKE '%Owner%' THEN 1
-        WHEN attr.HOME_OWNERSHIP LIKE '%Rent%' THEN 0
+    -- HOME_OWNERSHIP is now 'Homeowner'/'Renter' from akkio_attributes_latest
+    CASE attr.HOME_OWNERSHIP
+        WHEN 'Homeowner' THEN 1
+        WHEN 'Renter' THEN 0
         ELSE NULL
     END AS HOMEOWNER,
     attr.INCOME,

@@ -40,6 +40,7 @@ SELECT
 
     -- ============================================================
     -- TV NETWORKS / CABLE PROVIDERS
+    -- Note: rc_rs_* use 'Y', RC_TVMovies_* use 'A'
     -- ============================================================
     CONCAT_WS(',',
         CASE WHEN e_cv.rc_rs_tv_brand_comcast = 'Y' THEN 'Comcast' END,
@@ -47,18 +48,19 @@ SELECT
         CASE WHEN e_cv.rc_rs_tv_brand_dish_network = 'Y' THEN 'Dish Network' END,
         CASE WHEN e_cv.rc_rs_tv_brand_spectrum = 'Y' THEN 'Spectrum' END,
         CASE WHEN e_cv.rc_rs_tv_brand_xfinity = 'Y' THEN 'Xfinity' END,
-        CASE WHEN e_cv.`RC_TVMovies_HBO_Watcher` = 'Y' THEN 'HBO' END
+        CASE WHEN e_cv.`RC_TVMovies_HBO_Watcher` = 'A' THEN 'HBO' END
     ) AS NETWORKS_WATCHED,
 
     -- ============================================================
     -- INPUT DEVICES USED
+    -- Note: RC_Buyer_*/RC_CompElect_* use 'A', tv_brand_* use 'Y'
     -- ============================================================
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_Buyer_Laptop_Owners` = 'Y' THEN 'Laptop' END,
-        CASE WHEN e_cv.`RC_Buyer_Tablet_Owners` = 'Y' THEN 'Tablet' END,
-        CASE WHEN e_cv.`RC_CompElect_Apple_iPhone_` = 'Y' THEN 'iPhone' END,
-        CASE WHEN e_cv.`RC_CompElect_Apple_Mac_User` = 'Y' THEN 'Mac' END,
-        CASE WHEN e_cv.`RC_CompElect_Dell_Computer_User` = 'Y' THEN 'Dell PC' END,
+        CASE WHEN e_cv.`RC_Buyer_Laptop_Owners` = 'A' THEN 'Laptop' END,
+        CASE WHEN e_cv.`RC_Buyer_Tablet_Owners` = 'A' THEN 'Tablet' END,
+        CASE WHEN e_cv.`RC_CompElect_Apple_iPhone_` = 'A' THEN 'iPhone' END,
+        CASE WHEN e_cv.`RC_CompElect_Apple_Mac_User` = 'A' THEN 'Mac' END,
+        CASE WHEN e_cv.`RC_CompElect_Dell_Computer_User` = 'A' THEN 'Dell PC' END,
         CASE WHEN e_cv.tv_brand_samsung = 'Y' THEN 'Samsung TV' END,
         CASE WHEN e_cv.tv_brand_vizio = 'Y' THEN 'Vizio TV' END,
         CASE WHEN e_cv.tv_brand_lg = 'Y' THEN 'LG TV' END,
@@ -69,57 +71,60 @@ SELECT
     -- TV/MOVIE GENRES WATCHED
     -- ============================================================
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_TVMovies_Comedy_Fan` = 'Y' THEN 'Comedy' END,
-        CASE WHEN e_cv.`RC_TVMovies_Drama_Fan` = 'Y' THEN 'Drama' END,
-        CASE WHEN e_cv.`RC_TVMovies_Thriller_Movie_Buff` = 'Y' THEN 'Thriller' END,
-        CASE WHEN e_cv.`RC_TVMoves_Horror_Movies` = 'Y' THEN 'Horror' END,
-        CASE WHEN e_cv.`RC_TVMovies_Scifi_Movie_Buff` = 'Y' THEN 'Sci-Fi' END,
-        CASE WHEN e_cv.`RC_TVMovies_Adventure_Movies` = 'Y' THEN 'Adventure' END,
-        CASE WHEN e_cv.`RC_TVMovies_Drama_Movies` = 'Y' THEN 'Drama Movies' END,
-        CASE WHEN e_cv.`RC_TVMovies_DocuForeign_Movies` = 'Y' THEN 'Documentary/Foreign' END,
-        CASE WHEN e_cv.`RC_TVMovies_Family_Films_` = 'Y' THEN 'Family' END,
-        CASE WHEN e_cv.`RC_TVMovies_Romantic_Comedy_Movies` = 'Y' THEN 'Romantic Comedy' END,
-        CASE WHEN e_cv.`RC_TVMovies_Cult_Classic` = 'Y' THEN 'Cult Classic' END,
-        CASE WHEN e_cv.`RC_TVMovies_Reality_TV_Shows` = 'Y' THEN 'Reality TV' END,
-        CASE WHEN e_cv.`RC_TVMovies_Game_Shows` = 'Y' THEN 'Game Shows' END,
-        CASE WHEN e_cv.`RC_TVMovies_TV_News` = 'Y' THEN 'News' END,
-        CASE WHEN e_cv.`RC_TVMovies_TV_History_Genre` = 'Y' THEN 'History' END,
-        CASE WHEN e_cv.`RC_TVMovies_TV_Animation_Genre` = 'Y' THEN 'Animation' END
+        CASE WHEN e_cv.`RC_TVMovies_Comedy_Fan` = 'A' THEN 'Comedy' END,
+        CASE WHEN e_cv.`RC_TVMovies_Drama_Fan` = 'A' THEN 'Drama' END,
+        CASE WHEN e_cv.`RC_TVMovies_Thriller_Movie_Buff` = 'A' THEN 'Thriller' END,
+        CASE WHEN e_cv.`RC_TVMoves_Horror_Movies` = 'A' THEN 'Horror' END,
+        CASE WHEN e_cv.`RC_TVMovies_Scifi_Movie_Buff` = 'A' THEN 'Sci-Fi' END,
+        CASE WHEN e_cv.`RC_TVMovies_Adventure_Movies` = 'A' THEN 'Adventure' END,
+        CASE WHEN e_cv.`RC_TVMovies_Drama_Movies` = 'A' THEN 'Drama Movies' END,
+        CASE WHEN e_cv.`RC_TVMovies_DocuForeign_Movies` = 'A' THEN 'Documentary/Foreign' END,
+        CASE WHEN e_cv.`RC_TVMovies_Family_Films_` = 'A' THEN 'Family' END,
+        CASE WHEN e_cv.`RC_TVMovies_Romantic_Comedy_Movies` = 'A' THEN 'Romantic Comedy' END,
+        CASE WHEN e_cv.`RC_TVMovies_Cult_Classic` = 'A' THEN 'Cult Classic' END,
+        CASE WHEN e_cv.`RC_TVMovies_Reality_TV_Shows` = 'A' THEN 'Reality TV' END,
+        CASE WHEN e_cv.`RC_TVMovies_Game_Shows` = 'A' THEN 'Game Shows' END,
+        CASE WHEN e_cv.`RC_TVMovies_TV_News` = 'A' THEN 'News' END,
+        CASE WHEN e_cv.`RC_TVMovies_TV_History_Genre` = 'A' THEN 'History' END,
+        CASE WHEN e_cv.`RC_TVMovies_TV_Animation_Genre` = 'A' THEN 'Animation' END
     ) AS GENRES_WATCHED,
 
     -- ============================================================
     -- TITLES / SHOWS WATCHED (specific shows)
     -- ============================================================
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_TVMovies_Top_Chef_TV_` = 'Y' THEN 'Top Chef' END,
-        CASE WHEN e_cv.`RC_TVMovies_Oprah_Fan` = 'Y' THEN 'Oprah' END,
-        CASE WHEN e_cv.`RC_TVMovies_Grammy_Watcher` = 'Y' THEN 'Grammy Awards' END,
-        CASE WHEN e_cv.`RC_TVMovies_College_Basketball_` = 'Y' THEN 'College Basketball' END,
-        CASE WHEN e_cv.`RC_TVMovies_College_Football` = 'Y' THEN 'College Football' END,
-        CASE WHEN e_cv.`RC_TVMovies_Female_TV_Shows` = 'Y' THEN 'Female TV Shows' END,
-        CASE WHEN e_cv.`RC:_TVMovies:_Guy_Shows_on_TV_V1` = 'Y' THEN 'Guy TV Shows' END
+        CASE WHEN e_cv.`RC_TVMovies_Top_Chef_TV_` = 'A' THEN 'Top Chef' END,
+        CASE WHEN e_cv.`RC_TVMovies_Oprah_Fan` = 'A' THEN 'Oprah' END,
+        CASE WHEN e_cv.`RC_TVMovies_Grammy_Watcher` = 'A' THEN 'Grammy Awards' END,
+        CASE WHEN e_cv.`RC_TVMovies_College_Basketball_` = 'A' THEN 'College Basketball' END,
+        CASE WHEN e_cv.`RC_TVMovies_College_Football` = 'A' THEN 'College Football' END,
+        CASE WHEN e_cv.`RC_TVMovies_Female_TV_Shows` = 'A' THEN 'Female TV Shows' END,
+        CASE WHEN e_cv.`RC:_TVMovies:_Guy_Shows_on_TV_V1` = 'A' THEN 'Guy TV Shows' END
     ) AS TITLES_WATCHED,
 
     -- ============================================================
     -- TV VIEWING BEHAVIOR
     -- ============================================================
-    CASE WHEN e_cv.tv_ad_avoider = 'Y' THEN 'Ad Avoider'
-         WHEN e_cv.tv_extreme_ad_avoider = 'Y' THEN 'Extreme Ad Avoider'
-         WHEN e_cv.tv_ad_acceptor = 'Y' THEN 'Ad Acceptor'
-         ELSE NULL
-    END AS AD_BEHAVIOR,
+    -- AD_BEHAVIORS: May not be mutually exclusive
+    CONCAT_WS(',',
+        CASE WHEN e_cv.tv_extreme_ad_avoider = 'Y' THEN 'Extreme Ad Avoider' END,
+        CASE WHEN e_cv.tv_ad_avoider = 'Y' THEN 'Ad Avoider' END,
+        CASE WHEN e_cv.tv_ad_acceptor = 'Y' THEN 'Ad Acceptor' END
+    ) AS AD_BEHAVIORS,
 
-    CASE WHEN e_cv.tv_solo_viewer = 'Y' THEN 'Solo'
-         WHEN e_cv.tv_cowatcher = 'Y' THEN 'Co-Watcher'
-         WHEN e_cv.tv_cowatching_children = 'Y' THEN 'Co-Watching with Children'
-         WHEN e_cv.tv_cowatching_no_children = 'Y' THEN 'Co-Watching (No Children)'
-         ELSE NULL
-    END AS VIEWING_MODE,
+    -- VIEWING_MODES: May not be mutually exclusive
+    CONCAT_WS(',',
+        CASE WHEN e_cv.tv_solo_viewer = 'Y' THEN 'Solo' END,
+        CASE WHEN e_cv.tv_cowatcher = 'Y' THEN 'Co-Watcher' END,
+        CASE WHEN e_cv.tv_cowatching_children = 'Y' THEN 'Co-Watching with Children' END,
+        CASE WHEN e_cv.tv_cowatching_no_children = 'Y' THEN 'Co-Watching (No Children)' END
+    ) AS VIEWING_MODES,
 
-    CASE WHEN e_cv.tv_small_screen = 'Y' THEN 'Small'
-         WHEN e_cv.tv_large_screen = 'Y' THEN 'Large'
-         ELSE NULL
-    END AS SCREEN_SIZE,
+    -- SCREEN_SIZES: May not be mutually exclusive
+    CONCAT_WS(',',
+        CASE WHEN e_cv.tv_small_screen = 'Y' THEN 'Small' END,
+        CASE WHEN e_cv.tv_large_screen = 'Y' THEN 'Large' END
+    ) AS SCREEN_SIZES,
 
     -- Cord cutting status
     CASE WHEN e_cv.`RC_OBM_cordcuttersV1` = 'Y' THEN 1 ELSE 0 END AS IS_CORD_CUTTER,

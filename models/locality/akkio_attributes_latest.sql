@@ -32,132 +32,200 @@ SELECT
     -- INDIVIDUAL DEMOGRAPHICS (real data from ConsumerView2)
     -- ============================================================
 
-    COALESCE(e_cv.`Person_RC_gndr_gndr_2`, NULL) AS GENDER,
-
-    -- AGE: Parse range string to midpoint integer
-    -- Age columns contain ranges like "25-34" - extract midpoint
     CASE
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '%-%' THEN
-            CAST((
-                CAST(SPLIT(COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`), '-')[0] AS INT) +
-                CAST(SPLIT(COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`), '-')[1] AS INT)
-            ) / 2 AS INT)
+        WHEN e_cv.`Person_RC_gndr_gndr_2` = 'M' THEN 'M'
+        WHEN e_cv.`Person_RC_gndr_gndr_2` = 'F' THEN 'F'
+        WHEN e_cv.`PDM_Gender_Male` = 'Y' THEN 'M'
+        WHEN e_cv.`PDM_Gender_Female` = 'Y' THEN 'F'
+        ELSE NULL
+    END AS GENDER,
+
+    -- AGE: Convert Experian letter codes to numeric midpoints
+    -- Experian codes: A=18-29, B=30-39, C=40-49, D=50-59, E=60-64, F=65+
+    CASE COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`)
+        WHEN 'A' THEN 24
+        WHEN 'B' THEN 35
+        WHEN 'C' THEN 45
+        WHEN 'D' THEN 55
+        WHEN 'E' THEN 62
+        WHEN 'F' THEN 70
         ELSE NULL
     END AS AGE,
 
-    -- AGE_BUCKET derived from AGE
-    CASE
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '18%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '19%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '20%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '21%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '22%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '23%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '24%' THEN 1
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '25%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '26%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '27%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '28%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '29%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '30%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '31%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '32%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '33%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '34%' THEN 2
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '35%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '36%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '37%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '38%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '39%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '40%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '41%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '42%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '43%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '44%' THEN 3
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '45%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '46%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '47%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '48%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '49%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '50%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '51%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '52%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '53%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '54%' THEN 4
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '55%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '56%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '57%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '58%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '59%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '60%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '61%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '62%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '63%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '64%' THEN 5
-        WHEN COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '65%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '66%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '67%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '68%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '69%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '70%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '71%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '72%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '73%' OR COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`) LIKE '74%' THEN 6
-        ELSE 7
+    -- AGE_BUCKET: Map Experian codes to Horizon buckets (1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+)
+    -- Note: Experian ranges don't align perfectly with Horizon buckets; using best approximation
+    CASE COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`)
+        WHEN 'A' THEN 1  -- 18-29 → bucket 1 (midpoint 24 is in 18-24)
+        WHEN 'B' THEN 2  -- 30-39 → bucket 2 (midpoint 35 is in 25-34 border, but 30-34 portion)
+        WHEN 'C' THEN 3  -- 40-49 → bucket 3 (midpoint 45 is in 35-44 border, but 40-44 portion)
+        WHEN 'D' THEN 4  -- 50-59 → bucket 4 (midpoint 55 is in 45-54 border, but 50-54 portion)
+        WHEN 'E' THEN 5  -- 60-64 → bucket 5 (entirely within 55-64)
+        WHEN 'F' THEN 6  -- 65+ → bucket 6 (65-74)
+        ELSE NULL
     END AS AGE_BUCKET,
 
-    COALESCE(e_cv.`Person__RC_Ethnic_-_Group_1`, e_cv.`Person__RC_Ethnic_-_Group_2`) AS ETHNICITY,
-    e_cv.`Person__RC_Person__Education_M_2` AS EDUCATION_LEVEL,
-    e_cv.`Person__RC_Person__Marital_Status_2` AS MARITAL_STATUS,
+    -- ETHNICITY: Decode A-O codes to human-readable
+    CASE COALESCE(e_cv.`Person__RC_Ethnic_-_Group_1`, e_cv.`Person__RC_Ethnic_-_Group_2`)
+        WHEN 'A' THEN 'African American'
+        WHEN 'B' THEN 'Southeast Asian'
+        WHEN 'C' THEN 'South Asian'
+        WHEN 'D' THEN 'Central Asian'
+        WHEN 'E' THEN 'Mediterranean'
+        WHEN 'F' THEN 'Native American'
+        WHEN 'G' THEN 'Scandinavian'
+        WHEN 'H' THEN 'Polynesian'
+        WHEN 'I' THEN 'Middle Eastern'
+        WHEN 'J' THEN 'Jewish'
+        WHEN 'K' THEN 'Western European'
+        WHEN 'L' THEN 'Eastern European'
+        WHEN 'M' THEN 'Caribbean Non-Hispanic'
+        WHEN 'N' THEN 'East Asian'
+        WHEN 'O' THEN 'Hispanic'
+        ELSE NULL
+    END AS ETHNICITY,
+
+    -- EDUCATION_LEVEL: Extract position 2 (education code 0-5) from 2-char field
+    -- Position 1 is confidence (1-5), Position 2 is actual education code
+    SUBSTRING(e_cv.`Person__RC_Person__Education_M_2`, 2, 1) AS EDUCATION_LEVEL,
+
+    -- MARITAL_STATUS: Decode A/B to human-readable
+    CASE e_cv.`Person__RC_Person__Marital_Status_2`
+        WHEN 'A' THEN 'Married'
+        WHEN 'B' THEN 'Single'
+        ELSE NULL
+    END AS MARITAL_STATUS,
 
     -- GEOGRAPHIC DATA
     e_cv.stat_abbr AS STATE,
     CAST(NULL AS STRING) AS ZIP11,
     CAST(NULL AS STRING) AS COUNTY_NAME,
 
-    -- OCCUPATION
-    COALESCE(e_cv.`Person__RC_Person__Occupation_1`, e_cv.`Person__RC_Person__Occupation_2`) AS OCCUPATION,
-    e_cv.`Person_RC_Person_Title_1` AS OCCUPATION_TITLE,
+    -- OCCUPATION: Decode A-I codes to human-readable
+    CASE COALESCE(e_cv.`Person__RC_Person__Occupation_1`, e_cv.`Person__RC_Person__Occupation_2`)
+        WHEN 'A' THEN 'Management'
+        WHEN 'B' THEN 'Technical'
+        WHEN 'C' THEN 'Professional'
+        WHEN 'D' THEN 'Sales'
+        WHEN 'E' THEN 'Office Administration'
+        WHEN 'F' THEN 'Blue Collar'
+        WHEN 'G' THEN 'Farmer'
+        WHEN 'H' THEN 'Other'
+        WHEN 'I' THEN 'Retired'
+        ELSE NULL
+    END AS OCCUPATION,
+
+    -- OCCUPATION_TITLE: Decode A-H codes to human-readable
+    CASE e_cv.`Person_RC_Person_Title_1`
+        WHEN 'A' THEN 'Chief Level Executive'
+        WHEN 'B' THEN 'Executive/Management'
+        WHEN 'C' THEN 'Finance'
+        WHEN 'D' THEN 'IT/Technical'
+        WHEN 'E' THEN 'Marketing'
+        WHEN 'F' THEN 'Owner'
+        WHEN 'G' THEN 'Professional/Sales'
+        WHEN 'H' THEN 'Other Business Exec'
+        ELSE NULL
+    END AS OCCUPATION_TITLE,
 
     -- ============================================================
     -- HOUSEHOLD DATA
     -- ============================================================
 
-    -- Home ownership
-    e_cv.`RC_Homeowner_Combined_HomeownerRenter` AS HOME_OWNERSHIP,
+    -- Home ownership: A=Homeowner, B=Renter
+    e_cv.`RC_Homeowner_Combined_HomeownerRenter` AS HOME_OWNERSHIP_CODE,
+    CASE e_cv.`RC_Homeowner_Combined_HomeownerRenter`
+        WHEN 'A' THEN 'Homeowner'
+        WHEN 'B' THEN 'Renter'
+        ELSE NULL
+    END AS HOME_OWNERSHIP,
 
-    -- Income
+    -- Income range code (A-J)
     e_cv.`RC_Est_Household_Income_V6` AS INCOME_RANGE,
 
-    -- Parse income to numeric - extract lower bound
-    CASE
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%250%' AND e_cv.`RC_Est_Household_Income_V6` LIKE '%500%' THEN 250000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%200%' THEN 200000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%175%' THEN 175000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%150%' THEN 150000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%125%' THEN 125000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%100%' THEN 100000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%75%' THEN 75000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%60%' THEN 60000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%50%' THEN 50000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%40%' THEN 40000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%25%' THEN 25000
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%15%' THEN 15000
+    -- INCOME: Convert Experian letter codes to numeric midpoints
+    -- A=$1K-25K, B=$25K-50K, C=$50K-75K, D=$75K-100K, E=$100K-125K,
+    -- F=$125K-150K, G=$150K-175K, H=$175K-200K, I=$200K-250K, J=$250K+
+    CASE e_cv.`RC_Est_Household_Income_V6`
+        WHEN 'A' THEN 12500
+        WHEN 'B' THEN 37500
+        WHEN 'C' THEN 62500
+        WHEN 'D' THEN 87500
+        WHEN 'E' THEN 112500
+        WHEN 'F' THEN 137500
+        WHEN 'G' THEN 162500
+        WHEN 'H' THEN 187500
+        WHEN 'I' THEN 225000
+        WHEN 'J' THEN 300000
         ELSE NULL
     END AS INCOME,
 
-    -- Income bucket for histograms
-    CASE
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%250%' THEN 14
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%200%' THEN 13
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%175%' THEN 12
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%150%' THEN 11
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%125%' THEN 10
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%100%' THEN 9
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%75%' THEN 8
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%60%' THEN 7
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%50%' THEN 6
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%40%' THEN 5
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%25%' THEN 4
-        WHEN e_cv.`RC_Est_Household_Income_V6` LIKE '%15%' THEN 3
+    -- INCOME_BUCKET: Experian A-J mapped to buckets 1-10 (1=lowest, 10=highest)
+    CASE e_cv.`RC_Est_Household_Income_V6`
+        WHEN 'A' THEN 1
+        WHEN 'B' THEN 2
+        WHEN 'C' THEN 3
+        WHEN 'D' THEN 4
+        WHEN 'E' THEN 5
+        WHEN 'F' THEN 6
+        WHEN 'G' THEN 7
+        WHEN 'H' THEN 8
+        WHEN 'I' THEN 9
+        WHEN 'J' THEN 10
         ELSE NULL
     END AS INCOME_BUCKET,
 
-    -- Net worth from CFI score
+    -- Net worth from CFI score (Experian A-K, where A=highest >$5M, K=lowest <$25K)
     e_cv.`CFINet_Asset_Score` AS NET_WORTH_RANGE,
 
-    -- Net worth bucket
-    CASE
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%9%' OR e_cv.`CFINet_Asset_Score` LIKE '%10%' THEN 9
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%8%' THEN 8
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%7%' THEN 7
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%6%' THEN 6
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%5%' THEN 5
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%4%' THEN 4
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%3%' THEN 3
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%2%' THEN 2
-        WHEN e_cv.`CFINet_Asset_Score` LIKE '%1%' THEN 1
+    -- NET_WORTH_BUCKET: Map Experian A-K (inverted) to Horizon A-I format
+    -- Horizon expects: A=<$1, B=$1-5K, C=$5-10K, D=$10-25K, E=$25-50K, F=$50-100K, G=$100-250K, H=$250-500K, I=>$500K
+    -- Experian provides: A=>$5M, B=$2.5-5M, C=$1-2.5M, D=$750K-1M, E=$500-750K, F=$250-500K, G=$100-250K, H=$75-100K, I=$50-75K, J=$25-50K, K=<$25K
+    -- Note: Experian's lowest bucket (<$25K) maps to Horizon D; Horizon A-C (very low net worth) have no Experian equivalent
+    CASE e_cv.`CFINet_Asset_Score`
+        WHEN 'A' THEN 'I'  -- >$5M → >$500K
+        WHEN 'B' THEN 'I'  -- $2.5-5M → >$500K
+        WHEN 'C' THEN 'I'  -- $1-2.5M → >$500K
+        WHEN 'D' THEN 'I'  -- $750K-1M → >$500K
+        WHEN 'E' THEN 'I'  -- $500-750K → >$500K
+        WHEN 'F' THEN 'H'  -- $250-500K → $250-500K
+        WHEN 'G' THEN 'G'  -- $100-250K → $100-250K
+        WHEN 'H' THEN 'F'  -- $75-100K → $50-100K
+        WHEN 'I' THEN 'F'  -- $50-75K → $50-100K
+        WHEN 'J' THEN 'E'  -- $25-50K → $25-50K
+        WHEN 'K' THEN 'D'  -- <$25K → $10-25K
         ELSE NULL
     END AS NET_WORTH_BUCKET,
 
     -- Home value
     e_cv.`RC_Estimated_Home_Value_range_` AS HOME_VALUE_RANGE,
 
-    -- Household size
-    e_cv.DU_size AS NUM_PEOPLE_IN_HOUSEHOLD_GROUP,
+    -- Household size: DU_size is "Dwelling Unit Size" (building type), NOT number of people
+    -- No direct household size column available in ConsumerView2
+    CAST(NULL AS STRING) AS NUM_PEOPLE_IN_HOUSEHOLD_GROUP,
 
     -- ============================================================
     -- CHILDREN DATA
+    -- Note: mom_* columns use 'A' for yes, not 'Y'
     -- ============================================================
 
     -- Child age groups (comma-separated)
     CONCAT_WS(',',
-        CASE WHEN e_cv.`mom_0-3yrs_hh` = 'Y' THEN '0-3' END,
-        CASE WHEN e_cv.`mom_4-6yrs_hh` = 'Y' THEN '4-6' END,
-        CASE WHEN e_cv.mom_tween_hh = 'Y' THEN 'Tween' END,
-        CASE WHEN e_cv.mom_teen_hh = 'Y' THEN 'Teen' END
+        CASE WHEN e_cv.`mom_0-3yrs_hh` = 'A' THEN '0-3' END,
+        CASE WHEN e_cv.`mom_4-6yrs_hh` = 'A' THEN '4-6' END,
+        CASE WHEN e_cv.mom_tween_hh = 'A' THEN 'Tween' END,
+        CASE WHEN e_cv.mom_teen_hh = 'A' THEN 'Teen' END
     ) AS CHILD_AGE_GROUP,
 
     -- Number of children
     CASE
-        WHEN e_cv.mom_2child_hh = 'Y' THEN '2+'
-        WHEN e_cv.mom_1chld_hh = 'Y' THEN '1'
+        WHEN e_cv.mom_2child_hh = 'A' THEN '2+'
+        WHEN e_cv.mom_1chld_hh = 'A' THEN '1'
         ELSE NULL
     END AS NUMBER_OF_CHILDREN,
 
     -- Presence of children
     CASE
-        WHEN e_cv.`mom_0-3yrs_hh` = 'Y' OR e_cv.`mom_4-6yrs_hh` = 'Y' OR e_cv.mom_tween_hh = 'Y' OR e_cv.mom_teen_hh = 'Y' OR e_cv.mom_1chld_hh = 'Y' OR e_cv.mom_2child_hh = 'Y' THEN 1
+        WHEN e_cv.`mom_0-3yrs_hh` = 'A' OR e_cv.`mom_4-6yrs_hh` = 'A' OR e_cv.mom_tween_hh = 'A' OR e_cv.mom_teen_hh = 'A' OR e_cv.mom_1chld_hh = 'A' OR e_cv.mom_2child_hh = 'A' THEN 1
         ELSE 0
     END AS PRESENCE_OF_CHILDREN,
 
@@ -165,70 +233,70 @@ SELECT
     -- INTERESTS (comma-separated aggregations)
     -- ============================================================
 
-    -- General interests
+    -- General interests (RC_ActInt_* and RC_Hobbies_* use 'A' for yes)
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_ActInt_Arts_and_Crafts` = 'Y' THEN 'Arts & Crafts' END,
-        CASE WHEN e_cv.`RC_ActInt_Audio_Book_Listener` = 'Y' THEN 'Audio Books' END,
-        CASE WHEN e_cv.`RC_ActInt_Book_Reader` = 'Y' THEN 'Reading' END,
-        CASE WHEN e_cv.`RC_ActInt_Cat_Owners` = 'Y' THEN 'Cat Owner' END,
-        CASE WHEN e_cv.`RC_ActInt_Coffee_Connoisseurs` = 'Y' THEN 'Coffee' END,
-        CASE WHEN e_cv.`RC_ActInt_Cultural_Arts` = 'Y' THEN 'Cultural Arts' END,
-        CASE WHEN e_cv.`RC_ActInt_Dog_Owners` = 'Y' THEN 'Dog Owner' END,
-        CASE WHEN e_cv.`RC_ActInt_Do-it-yourselfers` = 'Y' THEN 'DIY' END,
-        CASE WHEN e_cv.`RC_ActInt_E-Book_Reader` = 'Y' THEN 'E-Books' END,
-        CASE WHEN e_cv.`RC_ActInt_Fitness_Enthusiast` = 'Y' THEN 'Fitness' END,
-        CASE WHEN e_cv.`RC_ActInt_Gourmet_Cooking` = 'Y' THEN 'Gourmet Cooking' END,
-        CASE WHEN e_cv.`RC_ActInt_Healthy_Living` = 'Y' THEN 'Healthy Living' END,
-        CASE WHEN e_cv.`RC_ActInt_Home_Improvement_Spenders` = 'Y' THEN 'Home Improvement' END,
-        CASE WHEN e_cv.`RC_ActInt_Music_Download` = 'Y' THEN 'Music Download' END,
-        CASE WHEN e_cv.`RC_ActInt_Music_Streaming` = 'Y' THEN 'Music Streaming' END,
-        CASE WHEN e_cv.`RC_ActInt_Outdoor_Enthusiast` = 'Y' THEN 'Outdoors' END,
-        CASE WHEN e_cv.`RC_ActInt_Pet_Enthusiast` = 'Y' THEN 'Pets' END,
-        CASE WHEN e_cv.`RC_ActInt_Photography` = 'Y' THEN 'Photography' END,
-        CASE WHEN e_cv.`RC_ActIntVideo_Gamer` = 'Y' THEN 'Video Games' END,
-        CASE WHEN e_cv.`RC_ActInt_Wine_Lovers` = 'Y' THEN 'Wine' END,
-        CASE WHEN e_cv.`RC_Hobbies_Gardening` = 'Y' THEN 'Gardening' END
+        CASE WHEN e_cv.`RC_ActInt_Arts_and_Crafts` = 'A' THEN 'Arts & Crafts' END,
+        CASE WHEN e_cv.`RC_ActInt_Audio_Book_Listener` = 'A' THEN 'Audio Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Book_Reader` = 'A' THEN 'Reading' END,
+        CASE WHEN e_cv.`RC_ActInt_Cat_Owners` = 'A' THEN 'Cat Owner' END,
+        CASE WHEN e_cv.`RC_ActInt_Coffee_Connoisseurs` = 'A' THEN 'Coffee' END,
+        CASE WHEN e_cv.`RC_ActInt_Cultural_Arts` = 'A' THEN 'Cultural Arts' END,
+        CASE WHEN e_cv.`RC_ActInt_Dog_Owners` = 'A' THEN 'Dog Owner' END,
+        CASE WHEN e_cv.`RC_ActInt_Do-it-yourselfers` = 'A' THEN 'DIY' END,
+        CASE WHEN e_cv.`RC_ActInt_E-Book_Reader` = 'A' THEN 'E-Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Fitness_Enthusiast` = 'A' THEN 'Fitness' END,
+        CASE WHEN e_cv.`RC_ActInt_Gourmet_Cooking` = 'A' THEN 'Gourmet Cooking' END,
+        CASE WHEN e_cv.`RC_ActInt_Healthy_Living` = 'A' THEN 'Healthy Living' END,
+        CASE WHEN e_cv.`RC_ActInt_Home_Improvement_Spenders` = 'A' THEN 'Home Improvement' END,
+        CASE WHEN e_cv.`RC_ActInt_Music_Download` = 'A' THEN 'Music Download' END,
+        CASE WHEN e_cv.`RC_ActInt_Music_Streaming` = 'A' THEN 'Music Streaming' END,
+        CASE WHEN e_cv.`RC_ActInt_Outdoor_Enthusiast` = 'A' THEN 'Outdoors' END,
+        CASE WHEN e_cv.`RC_ActInt_Pet_Enthusiast` = 'A' THEN 'Pets' END,
+        CASE WHEN e_cv.`RC_ActInt_Photography` = 'A' THEN 'Photography' END,
+        CASE WHEN e_cv.`RC_ActIntVideo_Gamer` = 'A' THEN 'Video Games' END,
+        CASE WHEN e_cv.`RC_ActInt_Wine_Lovers` = 'A' THEN 'Wine' END,
+        CASE WHEN e_cv.`RC_Hobbies_Gardening` = 'A' THEN 'Gardening' END
     ) AS GENERAL_INTERESTS,
 
     -- Sports interests
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_ActInt_Avid_Runners` = 'Y' THEN 'Running' END,
-        CASE WHEN e_cv.`RC_ActInt_Boating` = 'Y' THEN 'Boating' END,
-        CASE WHEN e_cv.`RC_ActInt_Fishing` = 'Y' THEN 'Fishing' END,
-        CASE WHEN e_cv.`RC_ActInt_Hunting_Enthusiasts` = 'Y' THEN 'Hunting' END,
-        CASE WHEN e_cv.`RC_ActIntMLB_Enthusiast` = 'Y' THEN 'MLB' END,
-        CASE WHEN e_cv.`RC_ActIntNASCAR_Enthusiast` = 'Y' THEN 'NASCAR' END,
-        CASE WHEN e_cv.`RC_ActIntNBA_Enthusiast` = 'Y' THEN 'NBA' END,
-        CASE WHEN e_cv.`RC_ActIntNFL_Enthusiast` = 'Y' THEN 'NFL' END,
-        CASE WHEN e_cv.`RC_ActIntNHL_Enthusiast` = 'Y' THEN 'NHL' END,
-        CASE WHEN e_cv.`RC_ActIntPGA_Tour_Enthusiast` = 'Y' THEN 'Golf/PGA' END,
-        CASE WHEN e_cv.`RC_ActIntPlay_Golf` = 'Y' THEN 'Golf' END,
-        CASE WHEN e_cv.`RC_ActInt_Plays_Hockey` = 'Y' THEN 'Hockey' END,
-        CASE WHEN e_cv.`RC_ActInt_Plays_Soccer` = 'Y' THEN 'Soccer' END,
-        CASE WHEN e_cv.`RC_ActInt_Plays_Tennis` = 'Y' THEN 'Tennis' END,
-        CASE WHEN e_cv.`RC_ActInt_Snow_Sports` = 'Y' THEN 'Snow Sports' END,
-        CASE WHEN e_cv.`RC_ActInt_Sports_Enthusiast` = 'Y' THEN 'Sports General' END,
-        CASE WHEN e_cv.`RC_ActIntCanoeingKayaking` = 'Y' THEN 'Canoeing/Kayaking' END
+        CASE WHEN e_cv.`RC_ActInt_Avid_Runners` = 'A' THEN 'Running' END,
+        CASE WHEN e_cv.`RC_ActInt_Boating` = 'A' THEN 'Boating' END,
+        CASE WHEN e_cv.`RC_ActInt_Fishing` = 'A' THEN 'Fishing' END,
+        CASE WHEN e_cv.`RC_ActInt_Hunting_Enthusiasts` = 'A' THEN 'Hunting' END,
+        CASE WHEN e_cv.`RC_ActIntMLB_Enthusiast` = 'A' THEN 'MLB' END,
+        CASE WHEN e_cv.`RC_ActIntNASCAR_Enthusiast` = 'A' THEN 'NASCAR' END,
+        CASE WHEN e_cv.`RC_ActIntNBA_Enthusiast` = 'A' THEN 'NBA' END,
+        CASE WHEN e_cv.`RC_ActIntNFL_Enthusiast` = 'A' THEN 'NFL' END,
+        CASE WHEN e_cv.`RC_ActIntNHL_Enthusiast` = 'A' THEN 'NHL' END,
+        CASE WHEN e_cv.`RC_ActIntPGA_Tour_Enthusiast` = 'A' THEN 'Golf/PGA' END,
+        CASE WHEN e_cv.`RC_ActIntPlay_Golf` = 'A' THEN 'Golf' END,
+        CASE WHEN e_cv.`RC_ActInt_Plays_Hockey` = 'A' THEN 'Hockey' END,
+        CASE WHEN e_cv.`RC_ActInt_Plays_Soccer` = 'A' THEN 'Soccer' END,
+        CASE WHEN e_cv.`RC_ActInt_Plays_Tennis` = 'A' THEN 'Tennis' END,
+        CASE WHEN e_cv.`RC_ActInt_Snow_Sports` = 'A' THEN 'Snow Sports' END,
+        CASE WHEN e_cv.`RC_ActInt_Sports_Enthusiast` = 'A' THEN 'Sports General' END,
+        CASE WHEN e_cv.`RC_ActIntCanoeingKayaking` = 'A' THEN 'Canoeing/Kayaking' END
     ) AS SPORTS_INTERESTS,
 
     -- Reading interests
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_ActInt_Book_Reader` = 'Y' THEN 'Books' END,
-        CASE WHEN e_cv.`RC_ActInt_E-Book_Reader` = 'Y' THEN 'E-Books' END,
-        CASE WHEN e_cv.`RC_ActInt_Audio_Book_Listener` = 'Y' THEN 'Audio Books' END,
-        CASE WHEN e_cv.`RC_ActInt_Digital_MagazineNewspapers_Buyers` = 'Y' THEN 'Digital Magazines' END
+        CASE WHEN e_cv.`RC_ActInt_Book_Reader` = 'A' THEN 'Books' END,
+        CASE WHEN e_cv.`RC_ActInt_E-Book_Reader` = 'A' THEN 'E-Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Audio_Book_Listener` = 'A' THEN 'Audio Books' END,
+        CASE WHEN e_cv.`RC_ActInt_Digital_MagazineNewspapers_Buyers` = 'A' THEN 'Digital Magazines' END
     ) AS READING_INTERESTS,
 
-    -- Travel interests
+    -- Travel interests (RC_Lifestyle_* use 'A' for yes)
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Business_Traveler` = 'Y' THEN 'Business Travel' END,
-        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Cruise_Enthusiast` = 'Y' THEN 'Cruises' END,
-        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Domestic_Vacationer` = 'Y' THEN 'Domestic Vacation' END,
-        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Foreign_Vacationer` = 'Y' THEN 'Foreign Vacation' END,
-        CASE WHEN e_cv.`RC_Lifestyle_Frequent_Flyer_Program_Member` = 'Y' THEN 'Frequent Flyer' END,
-        CASE WHEN e_cv.`RC_Lifestyle_Hotel_Guest_Loyalty_Program` = 'Y' THEN 'Hotel Loyalty' END,
-        CASE WHEN e_cv.`RC_ActInt_Amusement_Park_Visitors` = 'Y' THEN 'Amusement Parks' END,
-        CASE WHEN e_cv.`RC_ActInt_Zoo_Visitors` = 'Y' THEN 'Zoos' END
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Business_Traveler` = 'A' THEN 'Business Travel' END,
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Cruise_Enthusiast` = 'A' THEN 'Cruises' END,
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Domestic_Vacationer` = 'A' THEN 'Domestic Vacation' END,
+        CASE WHEN e_cv.`RC_Lifestyle_High_Frequency_Foreign_Vacationer` = 'A' THEN 'Foreign Vacation' END,
+        CASE WHEN e_cv.`RC_Lifestyle_Frequent_Flyer_Program_Member` = 'A' THEN 'Frequent Flyer' END,
+        CASE WHEN e_cv.`RC_Lifestyle_Hotel_Guest_Loyalty_Program` = 'A' THEN 'Hotel Loyalty' END,
+        CASE WHEN e_cv.`RC_ActInt_Amusement_Park_Visitors` = 'A' THEN 'Amusement Parks' END,
+        CASE WHEN e_cv.`RC_ActInt_Zoo_Visitors` = 'A' THEN 'Zoos' END
     ) AS TRAVEL_INTERESTS,
 
     -- ============================================================
@@ -305,23 +373,23 @@ SELECT
     -- Financial health
     e_cv.Fin_Ability_to_Pay AS FINANCIAL_HEALTH_BUCKET,
 
-    -- Credit card info
+    -- Credit card info (RC_Financial_* use 'A' for yes)
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_Financial_Credit_Card_User` = 'Y' THEN 'Credit Card User' END,
-        CASE WHEN e_cv.`RC_Financial_Premium_Credit_Card_User` = 'Y' THEN 'Premium Card' END,
-        CASE WHEN e_cv.`RC_Financial_Corporate_Credit_Card_User` = 'Y' THEN 'Corporate Card' END,
-        CASE WHEN e_cv.`RC_Financial_Debit_Card_User` = 'Y' THEN 'Debit Card' END,
-        CASE WHEN e_cv.`RC_Financial_Store_Credit_Card_User` = 'Y' THEN 'Store Card' END,
-        CASE WHEN e_cv.`RC_Financial_Major_Credit_Card_User` = 'Y' THEN 'Major Card' END
+        CASE WHEN e_cv.`RC_Financial_Credit_Card_User` = 'A' THEN 'Credit Card User' END,
+        CASE WHEN e_cv.`RC_Financial_Premium_Credit_Card_User` = 'A' THEN 'Premium Card' END,
+        CASE WHEN e_cv.`RC_Financial_Corporate_Credit_Card_User` = 'A' THEN 'Corporate Card' END,
+        CASE WHEN e_cv.`RC_Financial_Debit_Card_User` = 'A' THEN 'Debit Card' END,
+        CASE WHEN e_cv.`RC_Financial_Store_Credit_Card_User` = 'A' THEN 'Store Card' END,
+        CASE WHEN e_cv.`RC_Financial_Major_Credit_Card_User` = 'A' THEN 'Major Card' END
     ) AS CREDIT_CARD_INFO,
 
-    -- Investment types
+    -- Investment types (RC_Invest_* use 'A' for yes)
     CONCAT_WS(',',
-        CASE WHEN e_cv.`RC_Invest_Active_Investor` = 'Y' THEN 'Active Investor' END,
-        CASE WHEN e_cv.`RC_Invest_Brokerage_Account_Owner` = 'Y' THEN 'Brokerage Account' END,
-        CASE WHEN e_cv.`RC_Invest_Mutual_Fund_Investor` = 'Y' THEN 'Mutual Funds' END,
-        CASE WHEN e_cv.`RC_InvestHave_Retirement_Plan` = 'Y' THEN 'Retirement Plan' END,
-        CASE WHEN e_cv.`RC_InvestOnline_Trading` = 'Y' THEN 'Online Trading' END
+        CASE WHEN e_cv.`RC_Invest_Active_Investor` = 'A' THEN 'Active Investor' END,
+        CASE WHEN e_cv.`RC_Invest_Brokerage_Account_Owner` = 'A' THEN 'Brokerage Account' END,
+        CASE WHEN e_cv.`RC_Invest_Mutual_Fund_Investor` = 'A' THEN 'Mutual Funds' END,
+        CASE WHEN e_cv.`RC_InvestHave_Retirement_Plan` = 'A' THEN 'Retirement Plan' END,
+        CASE WHEN e_cv.`RC_InvestOnline_Trading` = 'A' THEN 'Online Trading' END
     ) AS INVESTMENT_TYPE,
 
     -- Processing Metadata

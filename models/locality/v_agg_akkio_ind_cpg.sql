@@ -86,19 +86,21 @@ SELECT
     -- ============================================================
     -- SHOPPING BEHAVIOR
     -- ============================================================
-    CASE WHEN e_cv.TRX_InStore_Transactors = 'Y' THEN 'In-Store'
-         WHEN e_cv.TRX_Online_Transactors = 'Y' THEN 'Online'
-         ELSE NULL
-    END AS PREFERRED_CHANNEL,
+    -- SHOPPING_CHANNELS: Not mutually exclusive (4.5M+ have both In-Store and Online)
+    CONCAT_WS(',',
+        CASE WHEN e_cv.TRX_InStore_Transactors = 'Y' THEN 'In-Store' END,
+        CASE WHEN e_cv.TRX_Online_Transactors = 'Y' THEN 'Online' END
+    ) AS SHOPPING_CHANNELS,
 
-    CASE WHEN e_cv.TRX_Credit_Card_High_Spenders = 'Y' THEN 'Credit Card (High)'
-         WHEN e_cv.TRX_Credit_Card_Users = 'Y' THEN 'Credit Card'
-         WHEN e_cv.TRX_Cash_Users = 'Y' THEN 'Cash'
-         ELSE NULL
-    END AS PAYMENT_PREFERENCE,
+    -- PAYMENT_METHODS: Not mutually exclusive
+    CONCAT_WS(',',
+        CASE WHEN e_cv.TRX_Credit_Card_High_Spenders = 'Y' THEN 'Credit Card (High)' END,
+        CASE WHEN e_cv.TRX_Credit_Card_Users = 'Y' THEN 'Credit Card' END,
+        CASE WHEN e_cv.TRX_Cash_Users = 'Y' THEN 'Cash' END
+    ) AS PAYMENT_METHODS,
 
     -- Coupon usage
-    CASE WHEN e_cv.`RC_Buyer_Coupon_Users` = 'Y' THEN 1 ELSE 0 END AS IS_COUPON_USER,
+    CASE WHEN e_cv.`RC_Buyer_Coupon_Users` = 'A' THEN 1 ELSE 0 END AS IS_COUPON_USER,
 
     -- Shopping frequency indicators
     CASE WHEN e_cv.TRX_InStore_Transactors_Frequent_Spenders = 'Y' THEN 'Frequent In-Store'
