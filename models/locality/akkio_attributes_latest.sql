@@ -33,10 +33,10 @@ SELECT
     -- ============================================================
 
     CASE
+        WHEN e_cv.`PDM_Gender_Male` = 'Y' AND COALESCE(e_cv.`PDM_Gender_Female`, '') != 'Y' THEN 'M'
+        WHEN e_cv.`PDM_Gender_Female` = 'Y' AND COALESCE(e_cv.`PDM_Gender_Male`, '') != 'Y' THEN 'F'
         WHEN e_cv.`Person_RC_gndr_gndr_2` = 'M' THEN 'M'
         WHEN e_cv.`Person_RC_gndr_gndr_2` = 'F' THEN 'F'
-        WHEN e_cv.`PDM_Gender_Male` = 'Y' THEN 'M'
-        WHEN e_cv.`PDM_Gender_Female` = 'Y' THEN 'F'
         ELSE NULL
     END AS GENDER,
 
@@ -176,6 +176,22 @@ SELECT
 
     -- Net worth from CFI score (Experian A-K, where A=highest >$5M, K=lowest <$25K)
     e_cv.`CFINet_Asset_Score` AS NET_WORTH_RANGE,
+
+    -- NET_WORTH: Convert Experian letter codes to numeric midpoints
+    CASE e_cv.`CFINet_Asset_Score`
+        WHEN 'A' THEN 7500000   -- >$5M
+        WHEN 'B' THEN 3750000   -- $2.5-5M
+        WHEN 'C' THEN 1750000   -- $1-2.5M
+        WHEN 'D' THEN 875000    -- $750K-1M
+        WHEN 'E' THEN 625000    -- $500-750K
+        WHEN 'F' THEN 375000    -- $250-500K
+        WHEN 'G' THEN 175000    -- $100-250K
+        WHEN 'H' THEN 87500     -- $75-100K
+        WHEN 'I' THEN 62500     -- $50-75K
+        WHEN 'J' THEN 37500     -- $25-50K
+        WHEN 'K' THEN 12500     -- <$25K
+        ELSE NULL
+    END AS NET_WORTH,
 
     -- NET_WORTH_BUCKET: Map Experian A-K (inverted) to Horizon A-I format
     -- Horizon expects: A=<$1, B=$1-5K, C=$5-10K, D=$10-25K, E=$25-50K, F=$50-100K, G=$100-250K, H=$250-500K, I=>$500K

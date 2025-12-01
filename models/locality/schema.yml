@@ -134,15 +134,15 @@ models:
       - name: HOME_VALUE_RANGE
         description: "Estimated home value range from ConsumerView2 | :ml-encoding-nominal |<"
       - name: GENERAL_INTERESTS
-        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :ml-encoding-nominal |<"
+        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :akkio-ml-ignore |<"
       - name: SPORTS_INTERESTS
-        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :ml-encoding-nominal |<"
+        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :akkio-ml-ignore |<"
       - name: READING_INTERESTS
         description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal |<"
       - name: TRAVEL_INTERESTS
         description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal |<"
       - name: VEHICLE_MAKES
-        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :ml-encoding-nominal |<"
+        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :akkio-ml-ignore |<"
       - name: VEHICLE_STYLES
         description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal |<"
       - name: VEHICLE_CLASS
@@ -285,15 +285,15 @@ models:
       - name: NET_WORTH_BUCKET
         description: "Net worth range bucket"
       - name: GENERAL_INTERESTS
-        description: "General interests (comma-separated) | :ml-encoding-nominal |<"
+        description: "General interests (comma-separated) | :akkio-ml-ignore |<"
       - name: SPORTS_INTERESTS
-        description: "Sports interests (comma-separated) | :ml-encoding-nominal |<"
+        description: "Sports interests (comma-separated) | :akkio-ml-ignore |<"
       - name: READING_INTERESTS
         description: "Reading interests (comma-separated) | :ml-encoding-nominal |<"
       - name: TRAVEL_INTERESTS
         description: "Travel interests (comma-separated) | :ml-encoding-nominal |<"
       - name: MAKE
-        description: "Vehicle makes owned (comma-separated) | :ml-encoding-nominal |<"
+        description: "Vehicle makes owned (comma-separated) | :akkio-ml-ignore |<"
       - name: VEHICLE_STYLE
         description: "Vehicle styles (comma-separated) | :ml-encoding-nominal |<"
       - name: VEHICLE_CLASS
@@ -345,15 +345,15 @@ models:
       - name: INCOME_BUCKET
         description: "Income range bucket"
       - name: CHILD_AGE_GROUP
-        description: "Child age groups in household (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal |<"
+        description: "Child age groups in household (comma-separated: 0-3, 4-6, Tween, Teen)"
       - name: NUMBER_OF_CHILDREN
-        description: "Number of children (1, 2+) | :ml-encoding-nominal |<"
+        description: "Number of children (1, 2+)"
       - name: PRESENCE_OF_CHILDREN
         description: "Has children indicator (1=Yes, 0=No)"
       - name: NUM_PEOPLE_IN_HOUSEHOLD_GROUP
         description: "Household size from ConsumerView2"
       - name: MEDIAN_HOME_VALUE_BY_STATE
-        description: "Estimated home value range from ConsumerView2 | :ml-encoding-nominal |<"
+        description: "Estimated home value range from ConsumerView2"
       - name: PARTITION_DATE
         description: "Date when model was run"
         tests:
@@ -379,21 +379,21 @@ models:
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
       - name: APP_SERVICES_USED
-        description: "Streaming services used (comma-separated: Netflix, Hulu, HBO, Spotify, etc.) | :ml-encoding-nominal |<"
+        description: "Streaming services used (comma-separated: Netflix, Hulu, HBO, Spotify, etc.)"
       - name: NETWORKS_WATCHED
-        description: "TV networks/providers (comma-separated: Comcast, DirecTV, Spectrum, etc.) | :ml-encoding-nominal |<"
+        description: "TV networks/providers (comma-separated: Comcast, DirecTV, Spectrum, etc.)"
       - name: INPUT_DEVICES_USED
-        description: "Devices owned (comma-separated: Laptop, Tablet, iPhone, Samsung TV, etc.) | :ml-encoding-nominal |<"
+        description: "Devices owned (comma-separated: Laptop, Tablet, iPhone, Samsung TV, etc.)"
       - name: GENRES_WATCHED
-        description: "TV/movie genres (comma-separated: Comedy, Drama, Thriller, etc.) | :ml-encoding-nominal |<"
+        description: "TV/movie genres (comma-separated: Comedy, Drama, Thriller, etc.)"
       - name: TITLES_WATCHED
-        description: "Specific shows/titles watched (comma-separated) | :ml-encoding-nominal |<"
+        description: "Specific shows/titles watched (comma-separated)"
       - name: AD_BEHAVIOR
-        description: "Ad viewing behavior (Ad Avoider, Extreme Ad Avoider, Ad Acceptor) | :ml-encoding-nominal |<"
+        description: "Ad viewing behavior (Ad Avoider, Extreme Ad Avoider, Ad Acceptor)"
       - name: VIEWING_MODE
-        description: "How they watch TV (Solo, Co-Watcher, Co-Watching with Children) | :ml-encoding-nominal |<"
+        description: "How they watch TV (Solo, Co-Watcher, Co-Watching with Children)"
       - name: SCREEN_SIZE
-        description: "Preferred screen size (Small, Large) | :ml-encoding-nominal |<"
+        description: "Preferred screen size (Small, Large)"
       - name: IS_CORD_CUTTER
         description: "Cord cutter indicator (1=Yes, 0=No)"
       - name: PARTITION_DATE
@@ -421,9 +421,9 @@ models:
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
       - name: CATEGORIES_PURCHASED
-        description: "Purchase categories (comma-separated: Apparel, Pets, Food & Beverages, etc.) | :ml-encoding-nominal |<"
+        description: "Purchase categories (comma-separated: Apparel, Pets, Food & Beverages, etc.)"
       - name: PURCHASE_BUCKETS
-        description: "Spending levels by category (comma-separated key:value pairs) | :ml-encoding-nominal |<"
+        description: "Spending levels by category (comma-separated key:value pairs)"
       - name: TOTAL_DISCRETIONARY_SPEND
         description: "Total discretionary spending estimate"
       - name: DSE_APPAREL
@@ -443,13 +443,13 @@ models:
       - name: DSE_PERSONAL
         description: "Discretionary spend estimate - Personal"
       - name: PREFERRED_CHANNEL
-        description: "Preferred shopping channel (In-Store, Online) | :ml-encoding-nominal |<"
+        description: "Preferred shopping channel (In-Store, Online)"
       - name: PAYMENT_PREFERENCE
-        description: "Payment method preference (Credit Card, Cash) | :ml-encoding-nominal |<"
+        description: "Payment method preference (Credit Card, Cash)"
       - name: IS_COUPON_USER
         description: "Coupon user indicator (1=Yes, 0=No)"
       - name: SHOPPING_FREQUENCY
-        description: "Shopping frequency indicator (Frequent In-Store, Frequent Online) | :ml-encoding-nominal |<"
+        description: "Shopping frequency indicator (Frequent In-Store, Frequent Online)"
       - name: PARTITION_DATE
         description: "Date when model was run"
         tests:
