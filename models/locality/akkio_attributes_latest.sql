@@ -40,27 +40,49 @@ SELECT
         ELSE NULL
     END AS GENDER,
 
-    -- AGE: Convert Experian letter codes to numeric midpoints
-    -- Experian codes: A=18-29, B=30-39, C=40-49, D=50-59, E=60-64, F=65+
-    CASE COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`)
-        WHEN 'A' THEN 24
-        WHEN 'B' THEN 35
-        WHEN 'C' THEN 45
-        WHEN 'D' THEN 55
-        WHEN 'E' THEN 62
-        WHEN 'F' THEN 70
+    -- AGE: Use Age_Range_* boolean flags, return midpoint of range
+    CASE
+        WHEN e_cv.Age_Range_1820 = 'Y' THEN 19
+        WHEN e_cv.Age_Range_1924 = 'Y' THEN 22
+        WHEN e_cv.Age_Range_2124 = 'Y' THEN 23
+        WHEN e_cv.Age_Range_2529 = 'Y' THEN 27
+        WHEN e_cv.Age_Range_3034 = 'Y' THEN 32
+        WHEN e_cv.Age_Range_3539 = 'Y' THEN 37
+        WHEN e_cv.Age_Range_4044 = 'Y' THEN 42
+        WHEN e_cv.Age_Range_4549 = 'Y' THEN 47
+        WHEN e_cv.Age_Range_5054 = 'Y' THEN 52
+        WHEN e_cv.Age_Range_5559 = 'Y' THEN 57
+        WHEN e_cv.Age_Range_6569 = 'Y' THEN 67
+        WHEN e_cv.Age_Range_7074 = 'Y' THEN 72
+        WHEN e_cv.Age_Range_7579 = 'Y' THEN 77
+        WHEN e_cv.Age_Range_8084 = 'Y' THEN 82
+        WHEN e_cv.Age_Range_8589 = 'Y' THEN 87
+        WHEN e_cv.Age_Range_9094 = 'Y' THEN 92
+        WHEN e_cv.Age_Range_9599 = 'Y' THEN 97
+        WHEN e_cv.Age_Range_75 = 'Y' THEN 80
         ELSE NULL
     END AS AGE,
 
-    -- AGE_BUCKET: Map Experian codes to Horizon buckets (1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+)
-    -- Note: Experian ranges don't align perfectly with Horizon buckets; using best approximation
-    CASE COALESCE(e_cv.`Person__RC_Person__Age_1`, e_cv.`Person__RC_Person__Age_2`)
-        WHEN 'A' THEN 1  -- 18-29 → bucket 1 (midpoint 24 is in 18-24)
-        WHEN 'B' THEN 2  -- 30-39 → bucket 2 (midpoint 35 is in 25-34 border, but 30-34 portion)
-        WHEN 'C' THEN 3  -- 40-49 → bucket 3 (midpoint 45 is in 35-44 border, but 40-44 portion)
-        WHEN 'D' THEN 4  -- 50-59 → bucket 4 (midpoint 55 is in 45-54 border, but 50-54 portion)
-        WHEN 'E' THEN 5  -- 60-64 → bucket 5 (entirely within 55-64)
-        WHEN 'F' THEN 6  -- 65+ → bucket 6 (65-74)
+    -- AGE_BUCKET: Map to Horizon buckets (1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+)
+    CASE
+        WHEN e_cv.Age_Range_1820 = 'Y' THEN 1
+        WHEN e_cv.Age_Range_1924 = 'Y' THEN 1
+        WHEN e_cv.Age_Range_2124 = 'Y' THEN 1
+        WHEN e_cv.Age_Range_2529 = 'Y' THEN 2
+        WHEN e_cv.Age_Range_3034 = 'Y' THEN 2
+        WHEN e_cv.Age_Range_3539 = 'Y' THEN 3
+        WHEN e_cv.Age_Range_4044 = 'Y' THEN 3
+        WHEN e_cv.Age_Range_4549 = 'Y' THEN 4
+        WHEN e_cv.Age_Range_5054 = 'Y' THEN 4
+        WHEN e_cv.Age_Range_5559 = 'Y' THEN 5
+        WHEN e_cv.Age_Range_6569 = 'Y' THEN 6
+        WHEN e_cv.Age_Range_7074 = 'Y' THEN 6
+        WHEN e_cv.Age_Range_7579 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_8084 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_8589 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_9094 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_9599 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_75 = 'Y' THEN 7
         ELSE NULL
     END AS AGE_BUCKET,
 
@@ -84,14 +106,20 @@ SELECT
         ELSE NULL
     END AS ETHNICITY,
 
-    -- EDUCATION_LEVEL: Extract position 2 (education code 0-5) from 2-char field
-    -- Position 1 is confidence (1-5), Position 2 is actual education code
-    SUBSTRING(e_cv.`Person__RC_Person__Education_M_2`, 2, 1) AS EDUCATION_LEVEL,
+    -- EDUCATION_LEVEL: PDM (Primary Decision Maker) education flags
+    CASE
+        WHEN e_cv.`PDM_Education_04_Grad_Degree` = 'Y' THEN 'Graduate'
+        WHEN e_cv.`PDM_Education_03_Bach_Degree` = 'Y' THEN 'College'
+        WHEN e_cv.`PDM_Education_02_Some_College` = 'Y' THEN 'Some College'
+        WHEN e_cv.`PDM_Education_01_High_School_Diploma` = 'Y' THEN 'High School'
+        WHEN e_cv.`PDM_Education_05_Less_Than_HS` = 'Y' THEN 'High School'
+        ELSE NULL
+    END AS EDUCATION_LEVEL,
 
-    -- MARITAL_STATUS: Decode A/B to human-readable
-    CASE e_cv.`Person__RC_Person__Marital_Status_2`
-        WHEN 'A' THEN 'Married'
-        WHEN 'B' THEN 'Single'
+    -- MARITAL_STATUS: PDM (Primary Decision Maker) flags
+    CASE
+        WHEN e_cv.`PDM_Married` = 'Y' THEN 'Married'
+        WHEN e_cv.`PDM_Single` = 'Y' THEN 'Single'
         ELSE NULL
     END AS MARITAL_STATUS,
 
