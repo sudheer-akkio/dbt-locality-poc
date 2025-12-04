@@ -5,6 +5,8 @@
 }}
 
 -- Datonics segments for CTV id_type only
+-- Note: Leaf-filtering disabled due to scale (600B+ rows made NOT EXISTS infeasible)
+-- All segments included; downstream can filter by hierarchy depth if needed
 
 WITH all_category_segments AS (
     SELECT
@@ -15,40 +17,11 @@ WITH all_category_segments AS (
         L1, L2, L3, L4, L5
     FROM {{ ref('int_datonics_segments_metadata') }}
     WHERE record_type = 'segment'
-),
-
-parent_child AS (
-    SELECT
-        parent_segment,
-        child_segment
-    FROM {{ ref('int_datonics_segments_metadata') }}
-    WHERE record_type = 'parent_child'
-),
-
-ctv_ids AS (
-    SELECT d.id, d.id_type, d.segment
-    FROM {{ source('locality_poc_share_silver', 'datonics_ids') }} d
-    WHERE d.id_type = 'ctv'
-        AND d.segment IN (SELECT segment FROM all_category_segments)
-),
-
-ctv_leaf AS (
-    SELECT ids.*
-    FROM ctv_ids ids
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM ctv_ids ids2
-        INNER JOIN parent_child pc
-            ON ids2.segment = pc.child_segment
-        WHERE ids2.id = ids.id
-            AND ids2.id_type = ids.id_type
-            AND pc.parent_segment = ids.segment
-    )
 )
 
 SELECT DISTINCT
     ita.AKKIO_ID,
-    leaf.segment AS SEGMENT_ID,
+    d.segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         seg.L1,
         CASE WHEN seg.L2 IS NOT NULL THEN seg.L2 END,
@@ -63,9 +36,10 @@ SELECT DISTINCT
     seg.L5 AS SEGMENT_L5,
     seg.segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
-FROM ctv_leaf leaf
+FROM {{ source('locality_poc_share_silver', 'datonics_ids') }} d
 INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
-    ON leaf.id = ita.IDENTITY
-    AND leaf.id_type = ita.ID_TYPE
+    ON d.id = ita.IDENTITY
+    AND d.id_type = ita.ID_TYPE
 INNER JOIN all_category_segments seg
-    ON leaf.segment = seg.segment
+    ON d.segment = seg.segment
+WHERE d.id_type = 'ctv'
