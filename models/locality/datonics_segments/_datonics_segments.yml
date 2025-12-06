@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: int_datonics_segments_metadata
+    description: |
+      Pre-computed metadata for all datonics segments including parent-child relationships.
+      This small table (~1191 segments) is used by all category processing models.
+    columns:
+      - name: record_type
+        description: Either 'segment' (segment metadata) or 'parent_child' (relationship)
+      - name: segment
+        description: Datonics segment ID
+      - name: segment_name
+        description: Full hierarchical segment name (e.g., 'Automotive > Luxury > Owners')
+      - name: category
+        description: Top-level category (L1 value)
+      - name: depth
+        description: Hierarchy depth (1-5)
+      - name: L1
+        description: Level 1 segment name
+      - name: L2
+        description: Level 2 segment name
+      - name: L3
+        description: Level 3 segment name
+      - name: L4
+        description: Level 4 segment name
+      - name: L5
+        description: Level 5 segment name
+      - name: parent_segment
+        description: Parent segment ID (for parent_child records)
+      - name: child_segment
+        description: Child segment ID (for parent_child records)
+
+  - name: datonics_all_segments
+    description: |
+      All datonics segment memberships mapped to AKKIO_IDs across all 29 categories.
+      Dynamically processes all categories found in the metadata table.
+      Applies leaf-filtering to remove redundant parent segments (e.g., if an ID has
+      'Automotive > Luxury > Owners', we don't store separate rows for 'Automotive > Luxury'
+      and 'Automotive').
+    columns:
+      - name: AKKIO_ID
+        description: Akkio unique identifier
+      - name: SEGMENT_ID
+        description: Datonics segment ID
+      - name: SEGMENT_NAME
+        description: Comma-separated readable segment name (e.g., 'Automotive, Luxury, Owners')
+      - name: SEGMENT_L1
+        description: Top-level category (e.g., 'Automotive')
+      - name: SEGMENT_L2
+        description: Second-level segment (e.g., 'Luxury')
+      - name: SEGMENT_L3
+        description: Third-level segment (e.g., 'Owners')
+      - name: SEGMENT_L4
+        description: Fourth-level segment
+      - name: SEGMENT_L5
+        description: Fifth-level segment
+      - name: SEGMENT_DESCRIPTION
+        description: Segment description from datonics
+      - name: SEGMENT_SOURCE
+        description: Always 'datonics'

@@ -1,0 +1,12 @@
+{{
+    config(
+        materialized='table'
+    )
+}}
+
+select d_ids.*
+from {{ source('locality_poc_share_silver', 'datonics_ids') }} d_ids
+inner join {{ ref('identity_to_akkio_deduped') }} ita
+    on d_ids.id = ita.identity
+    and d_ids.id_type = ita.id_type
+where d_ids.id_type in ('ip', 'ctv', 'idfa', 'aaid')

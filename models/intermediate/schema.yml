@@ -1,0 +1,22 @@
+
+version: 2
+
+# NOTE: int_datonics_ids_matched is DISABLED (.sql.disabled)
+# The datonics_ids source table is 609B rows (10TB) which is too large
+# to process with standard DBT incremental strategies.
+#
+# Datonics will require specialized handling:
+# - Batch processing by id_type and date ranges
+# - Streaming ingestion approach
+# - Pre-aggregation at the source
+# - Alternative compute framework (Spark jobs, etc)
+#
+# For now, focusing on Inscape segments only (692M rows)
+
+# models:
+#   - name: int_datonics_ids_matched
+#     description: >
+#       DISABLED - Pre-filtered datonics for performance.
+#       Would reduce 609B → 50-150B rows | Est time: 30-60 min (risky)
+#       This intermediate table would filter the massive datonics_ids table to only
+#       the identities that match households in our identity graph.

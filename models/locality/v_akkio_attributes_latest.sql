@@ -1,27 +1,11 @@
+{{
+    config(
+        materialized='view',
+        alias='V_AKKIO_ATTRIBUTES_LATEST'
+    )
+}}
 
-/*
-    Welcome to your first dbt model!
-    Did you know that you can also configure models directly within SQL files?
-    This will override configurations stated in dbt_project.yml
+-- Shallow view for backwards compatibility with Insights system
+-- Points to the actual table AKKIO_ATTRIBUTES_LATEST
 
-    Try changing "table" to "view" below
-*/
-
-{{ config(materialized='table') }}
-
-with source_data as (
-
-    select 1 as id
-    union all
-    select null as id
-
-)
-
-select *
-from source_data
-
-/*
-    Uncomment the line below to remove records with null `id` values
-*/
-
--- where id is not null
+SELECT * FROM {{ ref('akkio_attributes_latest') }}
