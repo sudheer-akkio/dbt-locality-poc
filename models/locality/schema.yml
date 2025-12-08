@@ -457,9 +457,10 @@ models:
 
   - name: akkio_segments
     description: >
-      Household segment assignments from Inscape (TV viewing and ad exposure patterns).
-      Rows: ~410M | Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE)
-      NOTE: Datonics segments skipped due to 609B row source table requiring specialized processing.
+      Household segment assignments from Inscape and Datonics.
+      Inscape: TV viewing and ad exposure patterns (~410M rows).
+      Datonics: Behavioral and demographic segments from 609B source, deduplicated (~60B rows).
+      Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE)
       | :short-name:audience_segments |<
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -478,10 +479,20 @@ models:
           - not_null
       - name: SEGMENT_NAME
         description: "Normalized segment name | :lower :space-to-hyphen |<"
+      - name: SEGMENT_L1
+        description: "Datonics hierarchy level 1 (category). NULL for Inscape."
+      - name: SEGMENT_L2
+        description: "Datonics hierarchy level 2. NULL for Inscape."
+      - name: SEGMENT_L3
+        description: "Datonics hierarchy level 3. NULL for Inscape."
+      - name: SEGMENT_L4
+        description: "Datonics hierarchy level 4. NULL for Inscape."
+      - name: SEGMENT_L5
+        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape."
       - name: SEGMENT_DESCRIPTION
-        description: "Segment description (Datonics only - currently NULL)"
+        description: "Segment description (Datonics only)"
       - name: SEGMENT_SOURCE
-        description: "Source of the segment | :lower |<"
+        description: "Source of the segment (inscape or datonics) | :lower |<"
         tests:
           - accepted_values:
-              values: ['inscape']
+              values: ['inscape', 'datonics']
