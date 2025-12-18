@@ -160,14 +160,14 @@ models:
       - name: HOME_OWNERSHIP
         description: "Home ownership status (Owner/Renter/NULL) | :ml-encoding-nominal |<"
       - name: INCOME
-        description: "Estimated household income in thousands (lower bound)"
+        description: "Estimated household income in dollars (midpoint of Experian A-J range)"
         tests:
           - dbt_utils.accepted_range:
               min_value: 0
               max_value: 5000
               severity: warn
       - name: INCOME_RANGE
-        description: "Income range bucket (e.g. '250000-499999') | :ml-encoding-nominal |<"
+        description: "Experian income code A-J (A=lowest, J=$250K+) | :ml-encoding-nominal |<"
       - name: NET_WORTH_RANGE
         description: "Net worth range bucket (e.g. '2000000-4999999') | :ml-encoding-nominal |<"
       - name: DBT_UPDATED_AT
@@ -279,9 +279,9 @@ models:
       - name: HOMEOWNER
         description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
       - name: INCOME
-        description: "Household income in dollars (numeric)"
+        description: "Estimated household income in dollars (midpoint of Experian A-J range)"
       - name: INCOME_BUCKET
-        description: "Income range bucket"
+        description: "Income bucket 1-10 from Experian A-J (1=lowest, 10=$250K+)"
       - name: NET_WORTH_BUCKET
         description: "Net worth range bucket"
       - name: GENERAL_INTERESTS
@@ -341,9 +341,9 @@ models:
       - name: HOMEOWNER
         description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
       - name: INCOME
-        description: "Household income in dollars (numeric)"
+        description: "Estimated household income in dollars (midpoint of Experian A-J range)"
       - name: INCOME_BUCKET
-        description: "Income range bucket"
+        description: "Income bucket 1-10 from Experian A-J (1=lowest, 10=$250K+)"
       - name: CHILD_AGE_GROUP
         description: "Child age groups in household (comma-separated: 0-3, 4-6, Tween, Teen)"
       - name: NUMBER_OF_CHILDREN
@@ -460,7 +460,8 @@ models:
       Household segment assignments from Inscape and Datonics.
       Inscape: TV viewing and ad exposure patterns (~410M rows).
       Datonics: Behavioral and demographic segments from 609B source, deduplicated (~60B rows).
-      Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE)
+      Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE).
+      AGGREGATION: GROUP BY only SEGMENT_ID - all other segment columns are derived from it.
       | :short-name:audience_segments |<
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -474,25 +475,25 @@ models:
         tests:
           - not_null
       - name: SEGMENT_ID
-        description: "Segment identifier"
+        description: "Unique segment identifier (~1,200 distinct values). GROUP BY this column only when aggregating."
         tests:
           - not_null
       - name: SEGMENT_NAME
-        description: "Normalized segment name | :lower :space-to-hyphen |<"
+        description: "Normalized segment name. Derived from SEGMENT_ID - do not GROUP BY | :lower :space-to-hyphen |<"
       - name: SEGMENT_L1
-        description: "Datonics hierarchy level 1 (category). NULL for Inscape."
+        description: "Datonics hierarchy level 1 (category). NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L2
-        description: "Datonics hierarchy level 2. NULL for Inscape."
+        description: "Datonics hierarchy level 2. NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L3
-        description: "Datonics hierarchy level 3. NULL for Inscape."
+        description: "Datonics hierarchy level 3. NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L4
-        description: "Datonics hierarchy level 4. NULL for Inscape."
+        description: "Datonics hierarchy level 4. NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L5
-        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape."
+        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_DESCRIPTION
-        description: "Segment description (Datonics only)"
+        description: "Segment description (Datonics only). Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_SOURCE
-        description: "Source of the segment (inscape or datonics) | :lower |<"
+        description: "Source of the segment (inscape or datonics). Derived from SEGMENT_ID - do not GROUP BY | :lower |<"
         tests:
           - accepted_values:
               values: ['inscape', 'datonics']

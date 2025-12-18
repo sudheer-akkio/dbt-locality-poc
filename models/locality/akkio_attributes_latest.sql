@@ -41,47 +41,52 @@ SELECT
     END AS GENDER,
 
     -- AGE: Use Age_Range_* boolean flags, return midpoint of range
+    -- IMPORTANT: Ordered from most specific to least specific ranges to handle
+    -- Experian's overlapping age range flags (34% of records have multiple flags set)
+    -- See: Age_Range_1924 (19-24) overlaps with Age_Range_2124 (21-24)
+    -- See: Age_Range_75 (75+) overlaps with Age_Range_7579, 8084, etc.
     CASE
-        WHEN e_cv.Age_Range_1820 = 'Y' THEN 19
-        WHEN e_cv.Age_Range_1924 = 'Y' THEN 22
-        WHEN e_cv.Age_Range_2124 = 'Y' THEN 23
-        WHEN e_cv.Age_Range_2529 = 'Y' THEN 27
-        WHEN e_cv.Age_Range_3034 = 'Y' THEN 32
-        WHEN e_cv.Age_Range_3539 = 'Y' THEN 37
-        WHEN e_cv.Age_Range_4044 = 'Y' THEN 42
-        WHEN e_cv.Age_Range_4549 = 'Y' THEN 47
-        WHEN e_cv.Age_Range_5054 = 'Y' THEN 52
-        WHEN e_cv.Age_Range_5559 = 'Y' THEN 57
-        WHEN e_cv.Age_Range_6569 = 'Y' THEN 67
-        WHEN e_cv.Age_Range_7074 = 'Y' THEN 72
-        WHEN e_cv.Age_Range_7579 = 'Y' THEN 77
-        WHEN e_cv.Age_Range_8084 = 'Y' THEN 82
-        WHEN e_cv.Age_Range_8589 = 'Y' THEN 87
-        WHEN e_cv.Age_Range_9094 = 'Y' THEN 92
         WHEN e_cv.Age_Range_9599 = 'Y' THEN 97
+        WHEN e_cv.Age_Range_9094 = 'Y' THEN 92
+        WHEN e_cv.Age_Range_8589 = 'Y' THEN 87
+        WHEN e_cv.Age_Range_8084 = 'Y' THEN 82
+        WHEN e_cv.Age_Range_7579 = 'Y' THEN 77
+        WHEN e_cv.Age_Range_7074 = 'Y' THEN 72
+        WHEN e_cv.Age_Range_6569 = 'Y' THEN 67
+        WHEN e_cv.Age_Range_5559 = 'Y' THEN 57
+        WHEN e_cv.Age_Range_5054 = 'Y' THEN 52
+        WHEN e_cv.Age_Range_4549 = 'Y' THEN 47
+        WHEN e_cv.Age_Range_4044 = 'Y' THEN 42
+        WHEN e_cv.Age_Range_3539 = 'Y' THEN 37
+        WHEN e_cv.Age_Range_3034 = 'Y' THEN 32
+        WHEN e_cv.Age_Range_2529 = 'Y' THEN 27
+        WHEN e_cv.Age_Range_1820 = 'Y' THEN 19
+        WHEN e_cv.Age_Range_2124 = 'Y' THEN 23
+        WHEN e_cv.Age_Range_1924 = 'Y' THEN 22
         WHEN e_cv.Age_Range_75 = 'Y' THEN 80
         ELSE NULL
     END AS AGE,
 
     -- AGE_BUCKET: Map to Horizon buckets (1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+)
+    -- IMPORTANT: Same ordering logic as AGE - specific ranges before broad catch-alls
     CASE
-        WHEN e_cv.Age_Range_1820 = 'Y' THEN 1
-        WHEN e_cv.Age_Range_1924 = 'Y' THEN 1
-        WHEN e_cv.Age_Range_2124 = 'Y' THEN 1
-        WHEN e_cv.Age_Range_2529 = 'Y' THEN 2
-        WHEN e_cv.Age_Range_3034 = 'Y' THEN 2
-        WHEN e_cv.Age_Range_3539 = 'Y' THEN 3
-        WHEN e_cv.Age_Range_4044 = 'Y' THEN 3
-        WHEN e_cv.Age_Range_4549 = 'Y' THEN 4
-        WHEN e_cv.Age_Range_5054 = 'Y' THEN 4
-        WHEN e_cv.Age_Range_5559 = 'Y' THEN 5
-        WHEN e_cv.Age_Range_6569 = 'Y' THEN 6
-        WHEN e_cv.Age_Range_7074 = 'Y' THEN 6
-        WHEN e_cv.Age_Range_7579 = 'Y' THEN 7
-        WHEN e_cv.Age_Range_8084 = 'Y' THEN 7
-        WHEN e_cv.Age_Range_8589 = 'Y' THEN 7
-        WHEN e_cv.Age_Range_9094 = 'Y' THEN 7
         WHEN e_cv.Age_Range_9599 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_9094 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_8589 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_8084 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_7579 = 'Y' THEN 7
+        WHEN e_cv.Age_Range_7074 = 'Y' THEN 6
+        WHEN e_cv.Age_Range_6569 = 'Y' THEN 6
+        WHEN e_cv.Age_Range_5559 = 'Y' THEN 5
+        WHEN e_cv.Age_Range_5054 = 'Y' THEN 4
+        WHEN e_cv.Age_Range_4549 = 'Y' THEN 4
+        WHEN e_cv.Age_Range_4044 = 'Y' THEN 3
+        WHEN e_cv.Age_Range_3539 = 'Y' THEN 3
+        WHEN e_cv.Age_Range_3034 = 'Y' THEN 2
+        WHEN e_cv.Age_Range_2529 = 'Y' THEN 2
+        WHEN e_cv.Age_Range_1820 = 'Y' THEN 1
+        WHEN e_cv.Age_Range_2124 = 'Y' THEN 1
+        WHEN e_cv.Age_Range_1924 = 'Y' THEN 1
         WHEN e_cv.Age_Range_75 = 'Y' THEN 7
         ELSE NULL
     END AS AGE_BUCKET,
