@@ -6,7 +6,7 @@ This document provides a comprehensive overview of the Locality data architectur
 
 - **Campaign Attribution**: Linking ad exposures to household profiles and conversions
 - **Audience Enrichment**: Augmenting households with 100+ demographic, behavioral, and interest attributes
-- **Segment Analysis**: Mapping households to both TV viewing patterns (Inscape) and behavioral segments (Datonics)
+- **Segment Analysis**: Mapping households to TV viewing patterns (Inscape), behavioral segments (Datonics), and audience segments (OnSpot)
 - **Analytics Compatibility**: Structured output tables optimized for the Insights analytics platform
 
 ---
@@ -16,8 +16,8 @@ This document provides a comprehensive overview of the Locality data architectur
 ### 1.1 Data Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              CAMPAIGN EXPOSURE                                  │
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                              CAMPAIGN EXPOSURE                                 │
 │  ┌─────────────────────────┐     ┌─────────────────────────────────────────┐   │
 │  │  freewheel_placement_   │     │             loopme                      │   │
 │  │       mapping           │     │  (Conversion Attribution)               │   │
@@ -37,59 +37,61 @@ This document provides a comprehensive overview of the Locality data architectur
                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                                   SPINE                                         │
-│  ┌────────────────────────────┐        ┌──────────────────────────────────────┐│
-│  │ experian_consolidated_     │        │      experian_consumerview2          ││
-│  │      id_map (7.9B)         │        │  (Demographics & Attributes)         ││
-│  │  - luid, identity, id_type │        │  - 1800+ columns                     ││
-│  │  - hh_id (household)       │        │  - Income, Age, Gender, etc.         ││
-│  └───────────┬────────────────┘        └─────────────────┬────────────────────┘│
-│              │                                           │                     │
-│              ▼                                           │                     │
-│  ┌────────────────────────────┐                          │                     │
-│  │ identity_to_akkio_deduped  │                          │                     │
-│  │     (1.76B rows)           │◄─────────────────────────┘                     │
-│  │  Links: IP/MAID/CTV → HH   │                                                │
-│  └───────────┬────────────────┘                                                │
+│  ┌────────────────────────────┐        ┌──────────────────────────────────────┐ │
+│  │ experian_consolidated_     │        │      experian_consumerview2          │ │
+│  │      id_map (7.9B)         │        │  (Demographics & Attributes)         │ │
+│  │  - luid, identity, id_type │        │  - 1800+ columns                     │ │
+│  │  - hh_id (household)       │        │  - Income, Age, Gender, etc.         │ │
+│  └───────────┬────────────────┘        └─────────────────┬────────────────────┘ │
+│              │                                           │                      │
+│              ▼                                           │                      │
+│  ┌────────────────────────────┐                          │                      │
+│  │ identity_to_akkio_deduped  │                          │                      │
+│  │     (1.76B rows)           │◄─────────────────────────┘                      │
+│  │  Links: IP/MAID/CTV → HH   │                                                 │
+│  └───────────┬────────────────┘                                                 │
 │              │                                                                  │
 │              ▼                                                                  │
-│  ┌────────────────────────────┐      ┌──────────────────────────────────────┐  │
-│  │  akkio_attributes_latest   │──────│        Analytics Views               │  │
-│  │     (108M households)      │      │  - V_AGG_AKKIO_IND (Individual)      │  │
-│  │  - Demographics            │      │  - V_AGG_AKKIO_HH (Household)        │  │
-│  │  - Interests & Behaviors   │      │  - V_AGG_AKKIO_IND_CPG (Purchase)    │  │
-│  │  - Financial & Vehicle     │      │  - V_AGG_AKKIO_IND_MEDIA (Media)     │  │
-│  └───────────┬────────────────┘      └──────────────────────────────────────┘  │
-└──────────────┼─────────────────────────────────────────────────────────────────┘
+│  ┌────────────────────────────┐      ┌──────────────────────────────────────┐   │
+│  │  akkio_attributes_latest   │──────│        Analytics Views               │   │
+│  │     (108M households)      │      │  - V_AGG_AKKIO_IND (Individual)      │   │
+│  │  - Demographics            │      │  - V_AGG_AKKIO_HH (Household)        │   │
+│  │  - Interests & Behaviors   │      │  - V_AGG_AKKIO_IND_CPG (Purchase)    │   │
+│  │  - Financial & Vehicle     │      │  - V_AGG_AKKIO_IND_MEDIA (Media)     │   │
+│  └───────────┬────────────────┘      └──────────────────────────────────────┘   │
+└──────────────┼──────────────────────────────────────────────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                                 SEGMENTS                                        │
-│  ┌─────────────────────────────┐      ┌────────────────────────────────────┐   │
-│  │     inscape_segments        │      │        datonics_ids (609B)         │   │
-│  │  (TV Viewing / Ad Exposure) │      │   (Behavioral Segments)            │   │
-│  │  - ip_address → AKKIO_ID    │      │   - ip/aaid/idfa/ctv → AKKIO_ID    │   │
-│  │  - segment_id, segment_name │      │   - 1,191 segments, 29 categories  │   │
-│  └────────────┬────────────────┘      └────────────────┬───────────────────┘   │
-│               │                                        │                       │
-│               └───────────────┬────────────────────────┘                       │
-│                               ▼                                                │
-│                 ┌─────────────────────────────┐                                │
-│                 │       akkio_segments        │                                │
-│                 │  (Unified Segment Table)    │                                │
-│                 │  - AKKIO_ID, SEGMENT_ID     │                                │
-│                 │  - L1-L5 hierarchy columns  │                                │
-│                 └─────────────────────────────┘                                │
+│  ┌─────────────────────────┐  ┌──────────────────────────┐  ┌──────────────────┐│
+│  │   inscape_segments      │  │    datonics_ids (609B)   │  │ onspot_audience  ││
+│  │ (TV Viewing/Ad Exposure)│  │  (Behavioral Segments)   │  │   _data (~20GB)  ││
+│  │ - ip_address → AKKIO_ID │  │ - ip/aaid/idfa/ctv →     │  │ - device_id →    ││
+│  │ - segment_id, name      │  │   AKKIO_ID               │  │   AKKIO_ID       ││
+│  │                         │  │ - 1,191 segs, 29 cats    │  │ - audience_name  ││
+│  └───────────┬─────────────┘  └────────────┬─────────────┘  └────────┬─────────┘│
+│              │                             │                         │          │
+│              └─────────────┬───────────────┘─────────────────────────┘          │
+│                            ▼                                                    │
+│              ┌─────────────────────────────┐                                    │
+│              │       akkio_segments        │                                    │
+│              │  (Unified Segment Table)    │                                    │
+│              │  - AKKIO_ID, SEGMENT_ID     │                                    │
+│              │  - L1-L5 hierarchy columns  │                                    │
+│              └─────────────────────────────┘                                    │
+│  NOTE: OnSpot integration is pending team review (commented out in code)        │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 Core Design Principles
 
-| Principle | Implementation |
-|-----------|---------------|
-| **Household-Centric** | All data resolves to `AKKIO_ID` (household identifier) as the primary key |
-| **Identity Resolution** | Multi-device identity graph links IPs, MAIDs, IDFAs, CTVs to households |
-| **Hierarchical Segments** | Datonics segments stored as L1-L5 columns for flexible querying |
-| **Incremental Processing** | Campaign exposure uses incremental strategy for efficiency |
+| Principle                        | Implementation                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Household-Centric**            | All data resolves to `AKKIO_ID` (household identifier) as the primary key                 |
+| **Identity Resolution**          | Multi-device identity graph links IPs, MAIDs, IDFAs, CTVs to households                   |
+| **Hierarchical Segments**        | Datonics segments stored as L1-L5 columns for flexible querying                           |
+| **Incremental Processing**       | Campaign exposure uses incremental strategy for efficiency                                |
 | **Materialized for Performance** | Critical join tables (identity_to_akkio_deduped) are materialized to avoid repeated scans |
 
 ---
@@ -98,15 +100,16 @@ This document provides a comprehensive overview of the Locality data architectur
 
 ### 2.1 Source Systems Summary
 
-| Source | Description | Scale | Key Use |
-|--------|-------------|-------|---------|
-| **Experian Consolidated ID Map** | Identity graph linking devices to households | 7.9B rows | Identity resolution |
-| **Experian ConsumerView2** | Demographic & behavioral attributes | 288M rows, 1800+ cols | Attribute enrichment |
-| **FreeWheel Logs** | Ad impression data from CTV campaigns | 8.26B rows | Campaign exposure tracking |
-| **LoopMe** | Conversion attribution data | 7.4M rows | Conversion matching |
-| **Inscape Segments** | TV viewing patterns | 692M rows | Audience segmentation |
-| **Datonics IDs** | Behavioral segment memberships | 609B rows | Audience segmentation |
-| **Datonics Segments** | Segment metadata (hierarchy definitions) | 1,191 segments | Segment taxonomy |
+| Source                           | Description                                  | Scale                 | Key Use                         |
+| -------------------------------- | -------------------------------------------- | --------------------- | ------------------------------- |
+| **Experian Consolidated ID Map** | Identity graph linking devices to households | 7.9B rows             | Identity resolution             |
+| **Experian ConsumerView2**       | Demographic & behavioral attributes          | 288M rows, 1800+ cols | Attribute enrichment            |
+| **FreeWheel Logs**               | Ad impression data from CTV campaigns        | 8.26B rows            | Campaign exposure tracking      |
+| **LoopMe**                       | Conversion attribution data                  | 7.4M rows             | Conversion matching             |
+| **Inscape Segments**             | TV viewing patterns                          | 692M rows             | Audience segmentation           |
+| **Datonics IDs**                 | Behavioral segment memberships               | 609B rows             | Audience segmentation           |
+| **Datonics Segments**            | Segment metadata (hierarchy definitions)     | 1,191 segments        | Segment taxonomy                |
+| **OnSpot Audience Data**         | Device IDs with audience names (Delta Share) | ~579m rows            | Audience segmentation (pending) |
 
 ### 2.2 Source Schema Configuration
 
@@ -125,6 +128,12 @@ sources:
   - name: locality_poc_share_gold
     tables:
       - freewheel_logs_gold           # Ad impressions
+
+  - name: locality_poc_onspot         # OnSpot (pending integration)
+    database: akkio
+    schema: locality_poc
+    tables:
+      - onspot_audience_data          # Device IDs + audience names
 ```
 
 ---
@@ -136,6 +145,7 @@ sources:
 The foundation of the architecture is a **household-centric identity graph** that maps multiple device identifiers to a single household ID (`AKKIO_ID`).
 
 **Identity Types Supported:**
+
 - `ip` — IP addresses
 - `aaid` — Android Advertising IDs
 - `idfa` — iOS Identifier for Advertisers
@@ -162,6 +172,7 @@ WHERE e_map.id_type IN ('ip', 'ctv', 'idfa', 'aaid')
 > This table is referenced 3+ times in downstream models. Materializing it avoids re-scanning 7.9B rows each time. Build time is ~5-10 minutes, producing 1.76B deduplicated rows.
 
 **Performance Optimization:**
+
 ```sql
 -- Clustering for efficient lookups
 ALTER TABLE identity_to_akkio_deduped CLUSTER BY (IDENTITY, ID_TYPE)
@@ -186,6 +197,7 @@ The household spine contains 108M households enriched with demographic, behavior
 ### 4.2 Attribute Categories
 
 #### Demographics
+
 ```sql
 -- Gender inference with fallback logic
 CASE
@@ -212,6 +224,7 @@ END AS ETHNICITY
 ```
 
 #### Income & Financial
+
 ```sql
 -- Income midpoint calculation from Experian letter codes
 CASE e_cv.RC_Est_Household_Income_V6
@@ -228,6 +241,7 @@ END AS NET_WORTH
 ```
 
 #### Interests (Comma-Separated Aggregations)
+
 ```sql
 -- General interests
 CONCAT_WS(',',
@@ -247,6 +261,7 @@ CONCAT_WS(',',
 ```
 
 #### Vehicle Ownership
+
 ```sql
 -- Vehicle makes (supports multiple vehicles per household)
 CONCAT_WS(',',
@@ -265,18 +280,18 @@ CONCAT_WS(',',
 
 ### 4.3 Full Attribute Schema
 
-| Category | Columns | Description |
-|----------|---------|-------------|
-| **Identity** | AKKIO_ID, AKKIO_HH_ID, LUID | Household identifiers |
-| **Demographics** | GENDER, AGE, AGE_BUCKET, ETHNICITY, EDUCATION_LEVEL, MARITAL_STATUS | Individual characteristics |
-| **Geographic** | STATE, ZIP11, COUNTY_NAME | Location data |
-| **Employment** | OCCUPATION, OCCUPATION_TITLE | Professional information |
-| **Household** | HOME_OWNERSHIP, NUM_PEOPLE_IN_HOUSEHOLD_GROUP, HOME_VALUE_RANGE | Household composition |
-| **Children** | PRESENCE_OF_CHILDREN, NUMBER_OF_CHILDREN, CHILD_AGE_GROUP | Family composition |
-| **Income/Wealth** | INCOME, INCOME_BUCKET, NET_WORTH, NET_WORTH_BUCKET | Financial indicators |
-| **Interests** | GENERAL_INTERESTS, SPORTS_INTERESTS, READING_INTERESTS, TRAVEL_INTERESTS | Lifestyle preferences |
-| **Vehicles** | VEHICLE_MAKES, VEHICLE_STYLES, VEHICLE_CLASS, FUEL_CODE | Auto ownership |
-| **Financial** | FINANCIAL_HEALTH_BUCKET, CREDIT_CARD_INFO, INVESTMENT_TYPE | Financial behavior |
+| Category          | Columns                                                                  | Description                |
+| ----------------- | ------------------------------------------------------------------------ | -------------------------- |
+| **Identity**      | AKKIO_ID, AKKIO_HH_ID, LUID                                              | Household identifiers      |
+| **Demographics**  | GENDER, AGE, AGE_BUCKET, ETHNICITY, EDUCATION_LEVEL, MARITAL_STATUS      | Individual characteristics |
+| **Geographic**    | STATE, ZIP11, COUNTY_NAME                                                | Location data              |
+| **Employment**    | OCCUPATION, OCCUPATION_TITLE                                             | Professional information   |
+| **Household**     | HOME_OWNERSHIP, NUM_PEOPLE_IN_HOUSEHOLD_GROUP, HOME_VALUE_RANGE          | Household composition      |
+| **Children**      | PRESENCE_OF_CHILDREN, NUMBER_OF_CHILDREN, CHILD_AGE_GROUP                | Family composition         |
+| **Income/Wealth** | INCOME, INCOME_BUCKET, NET_WORTH, NET_WORTH_BUCKET                       | Financial indicators       |
+| **Interests**     | GENERAL_INTERESTS, SPORTS_INTERESTS, READING_INTERESTS, TRAVEL_INTERESTS | Lifestyle preferences      |
+| **Vehicles**      | VEHICLE_MAKES, VEHICLE_STYLES, VEHICLE_CLASS, FUEL_CODE                  | Auto ownership             |
+| **Financial**     | FINANCIAL_HEALTH_BUCKET, CREDIT_CARD_INFO, INVESTMENT_TYPE               | Financial behavior         |
 
 ---
 
@@ -357,6 +372,7 @@ config:
 ```
 
 **Incremental Filter:**
+
 ```sql
 {% if is_incremental() %}
     AND fw.event_date > (SELECT MAX(event_date) FROM {{ this }})
@@ -365,19 +381,19 @@ config:
 
 ### 5.5 Key Output Columns
 
-| Column | Description |
-|--------|-------------|
-| `AKKIO_ID` | Matched household identifier |
+| Column                  | Description                          |
+| ----------------------- | ------------------------------------ |
+| `AKKIO_ID`              | Matched household identifier         |
 | `HAS_LOOPME_CONVERSION` | Boolean: Did this household convert? |
-| `LOOPME_CAMPAIGN_ID` | LoopMe campaign ID (if converted) |
-| `TRANSACTION_ID` | Unique FreeWheel impression ID |
-| `EVENT_DATE` | Date of ad exposure |
-| `LOCALITY_CAMPAIGN_ID` | Locality campaign identifier |
-| `LOCALITY_ADVERTISER` | Advertiser name |
-| `LOCALITY_CAMPAIGN` | Campaign name |
-| `IP_ADDRESS` | Viewer IP |
-| `DEVICE_ID` | Viewer device ID |
-| `REVENUE` | Impression revenue |
+| `LOOPME_CAMPAIGN_ID`    | LoopMe campaign ID (if converted)    |
+| `TRANSACTION_ID`        | Unique FreeWheel impression ID       |
+| `EVENT_DATE`            | Date of ad exposure                  |
+| `LOCALITY_CAMPAIGN_ID`  | Locality campaign identifier         |
+| `LOCALITY_ADVERTISER`   | Advertiser name                      |
+| `LOCALITY_CAMPAIGN`     | Campaign name                        |
+| `IP_ADDRESS`            | Viewer IP                            |
+| `DEVICE_ID`             | Viewer device ID                     |
+| `REVENUE`               | Impression revenue                   |
 
 ---
 
@@ -385,12 +401,13 @@ config:
 
 ### 6.1 Segment Sources
 
-The architecture unifies two distinct segment sources:
+The architecture unifies up to three segment sources:
 
-| Source | Type | Scale | Identity Matching |
-|--------|------|-------|-------------------|
-| **Inscape** | TV Viewing / Ad Exposure | 692M rows | IP address only |
-| **Datonics** | Behavioral & Demographic | 609B rows | IP, AAID, IDFA, CTV |
+| Source       | Type                     | Scale     | Identity Matching    | Status              |
+| ------------ | ------------------------ | --------- | -------------------- | ------------------- |
+| **Inscape**  | TV Viewing / Ad Exposure | 692M rows | IP address only      | Active              |
+| **Datonics** | Behavioral & Demographic | 609B rows | IP, AAID, IDFA, CTV  | Active              |
+| **OnSpot**   | Audience segments        | ~20GB     | Device ID (any type) | Pending team review |
 
 ### 6.2 Datonics Hierarchical Segments
 
@@ -457,13 +474,14 @@ INNER JOIN int_datonics_segments_metadata seg
 ```
 
 **Key Optimizations:**
+
 - **DISTINCT at Join Time**: Prevents materializing 118B intermediate rows
 - **ID Type Matching**: Joins on both identity value AND type for accuracy
 - **Metadata Pre-computation**: Segment hierarchy computed once, reused across all queries
 
 ### 6.5 Unified Segments Table (`akkio_segments`)
 
-The final segments table unions Inscape and Datonics:
+The final segments table unions Inscape and Datonics (with OnSpot integration prepared but commented out pending team review):
 
 ```sql
 -- akkio_segments.sql
@@ -484,25 +502,34 @@ datonics_segments AS (
     SELECT * FROM datonics_all_segments
 )
 
+-- OnSpot integration (commented out in code, pending team review):
+-- onspot_segments AS (
+--     SELECT DISTINCT ita.AKKIO_ID, o.audience_name AS SEGMENT_ID, ...
+--     FROM onspot_audience_data o
+--     INNER JOIN identity_to_akkio_deduped ita ON o.device_id = ita.IDENTITY
+-- )
+
 SELECT * FROM inscape_segments
 UNION ALL
 SELECT * FROM datonics_segments
+-- UNION ALL
+-- SELECT * FROM onspot_segments
 ```
 
 ### 6.6 Segment Schema
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `AKKIO_ID` | STRING | Household identifier |
-| `SEGMENT_ID` | STRING | Unique segment identifier |
-| `SEGMENT_NAME` | STRING | Human-readable segment name |
-| `SEGMENT_L1` | STRING | Category (Datonics only) |
-| `SEGMENT_L2` | STRING | Subcategory level 2 |
-| `SEGMENT_L3` | STRING | Subcategory level 3 |
-| `SEGMENT_L4` | STRING | Subcategory level 4 |
-| `SEGMENT_L5` | STRING | Subcategory level 5 |
-| `SEGMENT_DESCRIPTION` | STRING | Segment description |
-| `SEGMENT_SOURCE` | STRING | 'inscape' or 'datonics' |
+| Column                | Type   | Description                                       |
+| --------------------- | ------ | ------------------------------------------------- |
+| `AKKIO_ID`            | STRING | Household identifier                              |
+| `SEGMENT_ID`          | STRING | Unique segment identifier                         |
+| `SEGMENT_NAME`        | STRING | Human-readable segment name                       |
+| `SEGMENT_L1`          | STRING | Category (Datonics only)                          |
+| `SEGMENT_L2`          | STRING | Subcategory level 2                               |
+| `SEGMENT_L3`          | STRING | Subcategory level 3                               |
+| `SEGMENT_L4`          | STRING | Subcategory level 4                               |
+| `SEGMENT_L5`          | STRING | Subcategory level 5                               |
+| `SEGMENT_DESCRIPTION` | STRING | Segment description                               |
+| `SEGMENT_SOURCE`      | STRING | 'inscape', 'datonics', or 'onspot' (when enabled) |
 
 ### 6.7 Querying Segments
 
@@ -535,12 +562,12 @@ WHERE SEGMENT_L1 = 'Travel' AND SEGMENT_L2 = 'Luxury';
 
 The architecture produces four analytics-ready tables optimized for the Insights platform:
 
-| Table | Grain | Purpose | Key Attributes |
-|-------|-------|---------|----------------|
-| `V_AGG_AKKIO_IND` | Individual (AKKIO_ID) | Core demographics & interests | Gender, Age, Income, Interests |
-| `V_AGG_AKKIO_HH` | Household (AKKIO_HH_ID) | Household composition | Children, Home Value, Ownership |
-| `V_AGG_AKKIO_IND_CPG` | Individual | Purchase behavior | Categories, Spend Levels, Channels |
-| `V_AGG_AKKIO_IND_MEDIA` | Individual | Media consumption | Streaming, Devices, Genres |
+| Table                   | Grain                   | Purpose                       | Key Attributes                     |
+| ----------------------- | ----------------------- | ----------------------------- | ---------------------------------- |
+| `V_AGG_AKKIO_IND`       | Individual (AKKIO_ID)   | Core demographics & interests | Gender, Age, Income, Interests     |
+| `V_AGG_AKKIO_HH`        | Household (AKKIO_HH_ID) | Household composition         | Children, Home Value, Ownership    |
+| `V_AGG_AKKIO_IND_CPG`   | Individual              | Purchase behavior             | Categories, Spend Levels, Channels |
+| `V_AGG_AKKIO_IND_MEDIA` | Individual              | Media consumption             | Streaming, Devices, Genres         |
 
 ### 7.2 Individual Aggregation (`V_AGG_AKKIO_IND`)
 
@@ -690,14 +717,14 @@ LEFT JOIN experian_consumerview2 e_cv ON attr.LUID = e_cv.recd_luid
 
 ### 8.1 Materialization Strategy
 
-| Model | Materialization | Reason |
-|-------|-----------------|--------|
-| `akkio_attributes_latest` | TABLE | Core spine, accessed by all downstream models |
-| `identity_to_akkio_deduped` | TABLE | Critical join table, avoids 7.9B row re-scans |
-| `int_datonics_segments_metadata` | TABLE | Small metadata table (1,191 rows) |
-| `locality_campaign_exposure` | INCREMENTAL | 2.9B rows, only process new data |
-| `akkio_segments` | INCREMENTAL | Large table with append-only pattern |
-| `V_AGG_*` tables | TABLE | Analytics outputs, need fast query performance |
+| Model                            | Materialization | Reason                                         |
+| -------------------------------- | --------------- | ---------------------------------------------- |
+| `akkio_attributes_latest`        | TABLE           | Core spine, accessed by all downstream models  |
+| `identity_to_akkio_deduped`      | TABLE           | Critical join table, avoids 7.9B row re-scans  |
+| `int_datonics_segments_metadata` | TABLE           | Small metadata table (1,191 rows)              |
+| `locality_campaign_exposure`     | INCREMENTAL     | 2.9B rows, only process new data               |
+| `akkio_segments`                 | INCREMENTAL     | Large table with append-only pattern           |
+| `V_AGG_*` tables                 | TABLE           | Analytics outputs, need fast query performance |
 
 ### 8.2 Clustering Strategy
 
@@ -719,13 +746,14 @@ ALTER TABLE V_AGG_AKKIO_IND CLUSTER BY (PARTITION_DATE, AKKIO_ID);
 
 ### 8.3 Scale Metrics
 
-| Model | Rows | Build Time | Notes |
-|-------|------|------------|-------|
-| `akkio_attributes_latest` | 108M | ~1 min | Full refresh |
-| `identity_to_akkio_deduped` | 1.76B | 5-10 min | Full refresh |
-| `locality_campaign_exposure` | 2.9B | Incremental | Daily append |
-| `akkio_segments` (Inscape) | ~410M | Variable | IP-only matching |
-| `akkio_segments` (Datonics) | ~60B | Hours | 609B source, deduplicated |
+| Model                        | Rows  | Build Time  | Notes                                   |
+| ---------------------------- | ----- | ----------- | --------------------------------------- |
+| `akkio_attributes_latest`    | 108M  | ~1 min      | Full refresh                            |
+| `identity_to_akkio_deduped`  | 1.76B | 5-10 min    | Full refresh                            |
+| `locality_campaign_exposure` | 2.9B  | Incremental | Daily append                            |
+| `akkio_segments` (Inscape)   | ~410M | Variable    | IP-only matching                        |
+| `akkio_segments` (Datonics)  | ~60B  | Hours       | 609B source, deduplicated               |
+| `akkio_segments` (OnSpot)    | TBD   | TBD         | ~20GB source, ~65% match rate (pending) |
 
 ---
 
@@ -752,6 +780,7 @@ ALTER TABLE V_AGG_AKKIO_IND CLUSTER BY (PARTITION_DATE, AKKIO_ID);
 ```
 
 **Transformations:**
+
 - Lowercase all characters
 - Replace spaces with hyphens
 - Replace `&` with `and`
@@ -809,7 +838,7 @@ models:
       - name: SEGMENT_SOURCE
         tests:
           - accepted_values:
-              values: ['inscape', 'datonics']
+              values: ['inscape', 'datonics', 'onspot']
 ```
 
 ### 10.2 Referential Integrity
@@ -837,6 +866,7 @@ akkio_attributes_latest
     │        │
     │        ├──► akkio_segments (Inscape)
     │        ├──► akkio_segments (Datonics via datonics_all_segments)
+    │        ├──► akkio_segments (OnSpot via onspot_audience_data — pending)
     │        └──► locality_campaign_exposure
     │
     ├──► V_AGG_AKKIO_IND
@@ -874,56 +904,59 @@ models/
 ### C. Experian Code Mappings Reference
 
 **Income Ranges (RC_Est_Household_Income_V6):**
-| Code | Range | Midpoint |
-|------|-------|----------|
-| A | $1K-25K | $12,500 |
-| B | $25K-50K | $37,500 |
-| C | $50K-75K | $62,500 |
-| D | $75K-100K | $87,500 |
-| E | $100K-125K | $112,500 |
-| F | $125K-150K | $137,500 |
-| G | $150K-175K | $162,500 |
-| H | $175K-200K | $187,500 |
-| I | $200K-250K | $225,000 |
-| J | $250K+ | $300,000 |
+
+| Code | Range      | Midpoint |
+| ---- | ---------- | -------- |
+| A    | $1K-25K    | $12,500  |
+| B    | $25K-50K   | $37,500  |
+| C    | $50K-75K   | $62,500  |
+| D    | $75K-100K  | $87,500  |
+| E    | $100K-125K | $112,500 |
+| F    | $125K-150K | $137,500 |
+| G    | $150K-175K | $162,500 |
+| H    | $175K-200K | $187,500 |
+| I    | $200K-250K | $225,000 |
+| J    | $250K+     | $300,000 |
 
 **Net Worth (CFINet_Asset_Score):**
-| Code | Range |
-|------|-------|
-| A | >$5M |
-| B | $2.5-5M |
-| C | $1-2.5M |
-| D | $750K-1M |
-| E | $500-750K |
-| F | $250-500K |
-| G | $100-250K |
-| H | $75-100K |
-| I | $50-75K |
-| J | $25-50K |
-| K | <$25K |
+
+| Code | Range     |
+| ---- | --------- |
+| A    | >$5M      |
+| B    | $2.5-5M   |
+| C    | $1-2.5M   |
+| D    | $750K-1M  |
+| E    | $500-750K |
+| F    | $250-500K |
+| G    | $100-250K |
+| H    | $75-100K  |
+| I    | $50-75K   |
+| J    | $25-50K   |
+| K    | <$25K     |
 
 **Ethnicity (Person__RC_Ethnic_-_Group):**
-| Code | Ethnicity |
-|------|-----------|
-| A | African American |
-| B | Southeast Asian |
-| C | South Asian |
-| D | Central Asian |
-| E | Mediterranean |
-| F | Native American |
-| G | Scandinavian |
-| H | Polynesian |
-| I | Middle Eastern |
-| J | Jewish |
-| K | Western European |
-| L | Eastern European |
-| M | Caribbean Non-Hispanic |
-| N | East Asian |
-| O | Hispanic |
+
+| Code | Ethnicity              |
+| ---- | ---------------------- |
+| A    | African American       |
+| B    | Southeast Asian        |
+| C    | South Asian            |
+| D    | Central Asian          |
+| E    | Mediterranean          |
+| F    | Native American        |
+| G    | Scandinavian           |
+| H    | Polynesian             |
+| I    | Middle Eastern         |
+| J    | Jewish                 |
+| K    | Western European       |
+| L    | Eastern European       |
+| M    | Caribbean Non-Hispanic |
+| N    | East Asian             |
+| O    | Hispanic               |
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: December 2024*  
-*dbt Project: locality_poc_databricks*
-
+*Document Version: 1.1*  
+*Last Updated: February 2026*  
+*dbt Project: locality_poc_databricks*  
+*Changes: Added OnSpot audience data as pending segment source*
