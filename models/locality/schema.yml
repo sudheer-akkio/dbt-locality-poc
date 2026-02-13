@@ -79,6 +79,17 @@ sources:
           and timestamp can be matched against Locality's FreeWheel log data to
           directly measure ad performance. (7.4M rows)
 
+  - name: locality_poc_onspot
+    database: akkio
+    schema: locality_poc
+    tables:
+      - name: onspot_audience_data
+        description: >
+          OnSpot audience data containing device IDs and audience names.
+          Loaded from a client-provided Delta Share (~20GB).
+          Grain: (device_id, audience_name) - a device can belong to multiple audiences.
+          ~65% of device_ids match the Experian identity graph.
+
 models:
   - name: akkio_attributes_latest
     description: >
@@ -457,12 +468,12 @@ models:
 
   - name: akkio_segments
     description: >
-      Household segment assignments from Inscape and Datonics.
+      Household segment assignments from Inscape, Datonics, and OnSpot.
       Inscape: TV viewing and ad exposure patterns (~410M rows).
       Datonics: Behavioral and demographic segments from 609B source, deduplicated (~60B rows).
       Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE).
       AGGREGATION: GROUP BY only SEGMENT_ID - all other segment columns are derived from it.
-      | :short-name:audience_segments |<
+      | :short-name:audience_segments :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -481,19 +492,19 @@ models:
       - name: SEGMENT_NAME
         description: "Normalized segment name. Derived from SEGMENT_ID - do not GROUP BY | :lower :space-to-hyphen |<"
       - name: SEGMENT_L1
-        description: "Datonics hierarchy level 1 (category). NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
+        description: "Datonics hierarchy level 1 (category). NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L2
-        description: "Datonics hierarchy level 2. NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
+        description: "Datonics hierarchy level 2. NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L3
-        description: "Datonics hierarchy level 3. NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
+        description: "Datonics hierarchy level 3. NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L4
-        description: "Datonics hierarchy level 4. NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
+        description: "Datonics hierarchy level 4. NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_L5
-        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape. Derived from SEGMENT_ID - do not GROUP BY."
+        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_DESCRIPTION
         description: "Segment description (Datonics only). Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_SOURCE
-        description: "Source of the segment (inscape or datonics). Derived from SEGMENT_ID - do not GROUP BY | :lower |<"
+        description: "Source of the segment (inscape, datonics, or onspot). Derived from SEGMENT_ID - do not GROUP BY | :lower |<"
         tests:
           - accepted_values:
-              values: ['inscape', 'datonics']
+              values: ['inscape', 'datonics', 'onspot']
