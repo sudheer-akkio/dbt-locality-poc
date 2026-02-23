@@ -5,15 +5,10 @@
     )
 }}
 
--- Union of Inscape and Datonics segments
--- Datonics uses hierarchical L1-L5 structure, Inscape uses flat SEGMENT_NAME
---
--- TODO: OnSpot integration (commented out below, pending review)
--- When enabled, uncomment the onspot_segments CTE and its UNION ALL.
--- OnSpot data lives at akkio.locality_poc.onspot_audience_data (source is the
--- delta share at akkio.locality_poc_onspot).
--- It joins device_id to identity_to_akkio_deduped to resolve ~65% of devices to households.
--- Enabling this requires a full rebuild of akkio_segments (12-14 hours due to Datonics).
+-- Union of Inscape, Datonics, and OnSpot segments
+-- Datonics uses hierarchical L1-L5 structure; Inscape and OnSpot use flat SEGMENT_NAME.
+-- OnSpot data comes from ref(onspot_audience_data) (incremental copy from Delta Share);
+-- device_id is joined to identity_to_akkio_deduped to resolve ~65% of devices to households.
 
 WITH inscape_segments AS (
     SELECT DISTINCT
@@ -27,8 +22,8 @@ WITH inscape_segments AS (
         CAST(NULL AS STRING) AS SEGMENT_L5,
         CAST(NULL AS STRING) AS SEGMENT_DESCRIPTION,
         'inscape' AS SEGMENT_SOURCE
-    FROM {{ source('locality_poc_share_silver', 'inscape_segments') }} i_seg
-    INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+    FROM (SELECT * FROM {{ source('locality_poc_share_silver', 'inscape_segments') }}) i_seg
+    INNER JOIN (SELECT * FROM {{ ref('identity_to_akkio_deduped') }}) ita
         ON i_seg.ip_address = ita.IDENTITY
         AND ita.ID_TYPE = 'ip'
 ),
@@ -45,15 +40,11 @@ datonics_segments AS (
         SEGMENT_L5,
         SEGMENT_DESCRIPTION,
         SEGMENT_SOURCE
-    FROM {{ ref('datonics_all_segments') }}
-)
+    FROM (SELECT * FROM {{ ref('datonics_all_segments') }}) datonics_all_segments
+),
 
-{# -- OnSpot: device_id joined to identity graph, audience_name used as segment name
+-- OnSpot: device_id joined to identity graph, audience_name used as segment name
 -- Same pattern as Inscape but matches on any ID type (not just IP)
--- To enable: remove this Jinja comment block and uncomment the UNION ALL below
-
-,
-
 onspot_segments AS (
     SELECT DISTINCT
         ita.AKKIO_ID,
@@ -66,14 +57,13 @@ onspot_segments AS (
         CAST(NULL AS STRING) AS SEGMENT_L5,
         CAST(NULL AS STRING) AS SEGMENT_DESCRIPTION,
         'onspot' AS SEGMENT_SOURCE
-    FROM {{ source('locality_poc_onspot', 'onspot_audience_data') }} o
-    INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+    FROM (SELECT * FROM {{ ref('onspot_audience_data') }}) o
+    INNER JOIN (SELECT * FROM {{ ref('identity_to_akkio_deduped') }}) ita
         ON o.device_id = ita.IDENTITY
 )
-#}
 
 SELECT * FROM inscape_segments
 UNION ALL
 SELECT * FROM datonics_segments
-{# UNION ALL
-SELECT * FROM onspot_segments #}
+UNION ALL
+SELECT * FROM onspot_segments

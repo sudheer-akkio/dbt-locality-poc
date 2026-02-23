@@ -76,6 +76,12 @@ models:
         +alias: LOCALITY_CAMPAIGN_EXPOSURE
         # NOTE: Cannot use clustering on partitioned tables in Databricks
         # Partitioning by exposure_date provides the performance optimization
+      onspot_audience_data:
+        +materialized: incremental
+        +unique_key: ['device_id', 'audience_name']
+        +alias: ONSPOT_AUDIENCE_DATA
+        +post_hook:
+          - "alter table {{ this }} cluster by (device_id)"
       v_agg_akkio_ind:
         +materialized: table
         +alias: V_AGG_AKKIO_IND

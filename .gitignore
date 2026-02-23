@@ -35,3 +35,4 @@ Icon
 **/Icon?
 *.ico
 .ico
+dbt_internal_packages/

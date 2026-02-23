@@ -78,17 +78,13 @@ sources:
           campaigns. The combination of Mobile Advertising ID (MAID), IP address,
           and timestamp can be matched against Locality's FreeWheel log data to
           directly measure ad performance. (7.4M rows)
-
-  - name: locality_poc_onspot
-    database: akkio
-    schema: locality_poc
-    tables:
-      - name: onspot_audience_data
+      - name: onspot
         description: >
-          OnSpot audience data containing device IDs and audience names.
-          Loaded from a client-provided Delta Share (~20GB).
-          Grain: (device_id, audience_name) - a device can belong to multiple audiences.
-          ~65% of device_ids match the Experian identity graph.
+          OnSpot audience data (Delta Share, same as other silver sources).
+          Device IDs and audience names. ~579M rows, ~20GB.
+          Grain: (device_id, audience_name). The project's copy is built by the
+          dbt model onspot_audience_data in akkio.locality_poc. ~65% of device_ids
+          match the Experian identity graph.
 
 models:
   - name: akkio_attributes_latest
@@ -249,6 +245,26 @@ models:
         description: "Creative ID"
       - name: REVENUE
         description: "Revenue from impression"
+
+  - name: onspot_audience_data
+    description: >
+      Incremental copy of OnSpot audience data from the Delta Share into the project schema.
+      Source: locality_poc_share_silver.onspot (same Delta Share as other silver tables).
+      Grain: (device_id, audience_name). Used by akkio_segments when OnSpot integration is enabled.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - device_id
+            - audience_name
+    columns:
+      - name: device_id
+        description: "Device identifier; joined to identity_to_akkio_deduped for household resolution"
+        tests:
+          - not_null
+      - name: audience_name
+        description: "OnSpot audience name; used as SEGMENT_ID in akkio_segments"
+        tests:
+          - not_null
 
   - name: v_agg_akkio_ind
     description: >

@@ -124,17 +124,14 @@ sources:
       - inscape_segments              # TV viewing segments
       - loopme                        # Conversion data
       - freewheel_placement_mapping   # Campaign metadata
+      - onspot                        # OnSpot audience (device_id, audience_name)
 
   - name: locality_poc_share_gold
     tables:
       - freewheel_logs_gold           # Ad impressions
-
-  - name: locality_poc_onspot         # OnSpot (pending integration)
-    database: akkio
-    schema: locality_poc
-    tables:
-      - onspot_audience_data          # Device IDs + audience names
 ```
+
+**Note:** OnSpot lives in the same Delta Share as other silver tables (`locality-poc-share.silver.onspot`). The project's copy is built by the dbt model `onspot_audience_data` in `akkio.locality_poc`, which ingests from this source incrementally.
 
 ---
 
@@ -481,7 +478,7 @@ INNER JOIN int_datonics_segments_metadata seg
 
 ### 6.5 Unified Segments Table (`akkio_segments`)
 
-The final segments table unions Inscape and Datonics (with OnSpot integration prepared but commented out pending team review):
+The final segments table unions Inscape and Datonics (with OnSpot integration prepared but commented out pending team review). When OnSpot is enabled, `akkio_segments` reads from the **model** `ref('onspot_audience_data')` (the project's incrementally maintained copy), not directly from the Delta Share.
 
 ```sql
 -- akkio_segments.sql
@@ -505,7 +502,7 @@ datonics_segments AS (
 -- OnSpot integration (commented out in code, pending team review):
 -- onspot_segments AS (
 --     SELECT DISTINCT ita.AKKIO_ID, o.audience_name AS SEGMENT_ID, ...
---     FROM onspot_audience_data o
+--     FROM {{ ref('onspot_audience_data') }} o
 --     INNER JOIN identity_to_akkio_deduped ita ON o.device_id = ita.IDENTITY
 -- )
 
@@ -860,13 +857,15 @@ All campaign exposures and segments must link to valid households:
 ### A. Model Dependency Graph
 
 ```
-akkio_attributes_latest
+source(locality_poc_share_silver, onspot) ──► onspot_audience_data (incremental model)
+                                        │
+akkio_attributes_latest                 └──► akkio_segments (OnSpot branch — pending)
     │
     ├──► identity_to_akkio_deduped
     │        │
     │        ├──► akkio_segments (Inscape)
     │        ├──► akkio_segments (Datonics via datonics_all_segments)
-    │        ├──► akkio_segments (OnSpot via onspot_audience_data — pending)
+    │        ├──► akkio_segments (OnSpot via ref('onspot_audience_data'))
     │        └──► locality_campaign_exposure
     │
     ├──► V_AGG_AKKIO_IND
@@ -889,6 +888,7 @@ models/
     ├── akkio_segments.sql               # Unified segments
     ├── identity_to_akkio_deduped.sql    # Identity graph bridge
     ├── locality_campaign_exposure.sql   # Campaign impressions
+    ├── onspot_audience_data.sql         # OnSpot from Delta Share (incremental)
     │
     ├── v_agg_akkio_hh.sql               # Household analytics
     ├── v_agg_akkio_ind.sql              # Individual analytics
