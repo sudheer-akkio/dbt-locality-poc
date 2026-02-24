@@ -12,7 +12,7 @@
 --
 -- Identity resolution strategy (fixes DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE):
 --   1. IP match preferred over device (IP is more household-specific)
---   2. Device match (aaid/idfa only) as fallback when IP doesn't match
+--   2. Device match (all ID types) as fallback when IP doesn't match
 --   3. Geo tiebreaker: prefer AKKIO_ID whose state matches FreeWheel visitor_state_province
 --   4. Deterministic fallback: lowest AKKIO_ID
 
@@ -49,7 +49,7 @@ device_matched AS (
     FROM {{ source('locality_poc_share_gold', 'freewheel_logs_gold') }} fw
     INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita_device
         ON fw.device_id = ita_device.IDENTITY
-        AND ita_device.ID_TYPE IN ('aaid', 'idfa')
+        AND ita_device.ID_TYPE != 'ip'
     LEFT JOIN {{ ref('akkio_attributes_latest') }} attr
         ON ita_device.AKKIO_ID = attr.AKKIO_ID
     LEFT JOIN ip_matched
@@ -72,7 +72,7 @@ loopme_conversions AS (
         locality_campaign_id,
         loopme_campaign_id
     FROM (
-        -- MAID match (preferred — device-level identity)
+        -- Device/MAID match (preferred — device-level identity)
         SELECT
             ita.AKKIO_ID,
             l.locality_campaign_id,
@@ -83,11 +83,11 @@ loopme_conversions AS (
             ) AS rn
         FROM {{ source('locality_poc_share_silver', 'loopme') }} l
         INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
-            ON l.maid = ita.IDENTITY AND ita.ID_TYPE IN ('aaid', 'idfa')
+            ON l.maid = ita.IDENTITY AND ita.ID_TYPE != 'ip'
 
         UNION ALL
 
-        -- IP fallback — only for loopme rows with no MAID match
+        -- IP fallback — only for loopme rows with no device match
         SELECT
             ita.AKKIO_ID,
             l.locality_campaign_id,
@@ -100,8 +100,8 @@ loopme_conversions AS (
         INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
             ON l.ip = ita.IDENTITY AND ita.ID_TYPE = 'ip'
         WHERE NOT EXISTS (
-            SELECT 1 FROM {{ ref('identity_to_akkio_deduped') }} ita_maid
-            WHERE l.maid = ita_maid.IDENTITY AND ita_maid.ID_TYPE IN ('aaid', 'idfa')
+            SELECT 1 FROM {{ ref('identity_to_akkio_deduped') }} ita_dev
+            WHERE l.maid = ita_dev.IDENTITY AND ita_dev.ID_TYPE != 'ip'
         )
     )
     WHERE rn = 1
