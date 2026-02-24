@@ -9,38 +9,108 @@
 
 -- Campaign exposures from Freewheel, enriched with LoopMe conversion data
 -- LoopMe provides conversion attribution - checking if exposed households converted
+--
+-- Identity resolution strategy (fixes DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE):
+--   1. IP match preferred over device (IP is more household-specific)
+--   2. Device match (aaid/idfa only) as fallback when IP doesn't match
+--   3. Geo tiebreaker: prefer AKKIO_ID whose state matches FreeWheel visitor_state_province
+--   4. Deterministic fallback: lowest AKKIO_ID
 
-WITH freewheel_with_households AS (
+WITH ip_matched AS (
     SELECT
         fw.*,
-        COALESCE(ita_ip.AKKIO_ID, ita_device.AKKIO_ID) AS AKKIO_ID
+        ita_ip.AKKIO_ID,
+        ROW_NUMBER() OVER (
+            PARTITION BY fw.transaction_id
+            ORDER BY
+                CASE WHEN UPPER(fw.visitor_state_province) = attr.STATE THEN 0 ELSE 1 END,
+                ita_ip.AKKIO_ID
+        ) AS rn
     FROM {{ source('locality_poc_share_gold', 'freewheel_logs_gold') }} fw
-    LEFT JOIN {{ ref('identity_to_akkio_deduped') }} ita_ip
+    INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita_ip
         ON fw.ip_address = ita_ip.IDENTITY AND ita_ip.ID_TYPE = 'ip'
-    LEFT JOIN {{ ref('identity_to_akkio_deduped') }} ita_device
+    LEFT JOIN {{ ref('akkio_attributes_latest') }} attr
+        ON ita_ip.AKKIO_ID = attr.AKKIO_ID
+    {% if is_incremental() %}
+    WHERE fw.event_date > (SELECT MAX(event_date) FROM {{ this }})
+    {% endif %}
+),
+
+device_matched AS (
+    SELECT
+        fw.*,
+        ita_device.AKKIO_ID,
+        ROW_NUMBER() OVER (
+            PARTITION BY fw.transaction_id
+            ORDER BY
+                CASE WHEN UPPER(fw.visitor_state_province) = attr.STATE THEN 0 ELSE 1 END,
+                ita_device.AKKIO_ID
+        ) AS rn
+    FROM {{ source('locality_poc_share_gold', 'freewheel_logs_gold') }} fw
+    INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita_device
         ON fw.device_id = ita_device.IDENTITY
-    WHERE COALESCE(ita_ip.AKKIO_ID, ita_device.AKKIO_ID) IS NOT NULL
+        AND ita_device.ID_TYPE IN ('aaid', 'idfa')
+    LEFT JOIN {{ ref('akkio_attributes_latest') }} attr
+        ON ita_device.AKKIO_ID = attr.AKKIO_ID
+    LEFT JOIN ip_matched
+        ON fw.transaction_id = ip_matched.transaction_id
+    WHERE ip_matched.transaction_id IS NULL
     {% if is_incremental() %}
         AND fw.event_date > (SELECT MAX(event_date) FROM {{ this }})
     {% endif %}
 ),
 
+freewheel_with_households AS (
+    SELECT * FROM ip_matched WHERE rn = 1
+    UNION ALL
+    SELECT * FROM device_matched WHERE rn = 1
+),
+
 loopme_conversions AS (
-    SELECT DISTINCT
-        ita.AKKIO_ID,
-        l.locality_campaign_id,
-        l.loopme_campaign_id
-    FROM {{ source('locality_poc_share_silver', 'loopme') }} l
-    INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
-        ON (l.maid = ita.IDENTITY) OR (l.ip = ita.IDENTITY)
+    SELECT
+        AKKIO_ID,
+        locality_campaign_id,
+        loopme_campaign_id
+    FROM (
+        -- MAID match (preferred — device-level identity)
+        SELECT
+            ita.AKKIO_ID,
+            l.locality_campaign_id,
+            l.loopme_campaign_id,
+            ROW_NUMBER() OVER (
+                PARTITION BY ita.AKKIO_ID, l.locality_campaign_id
+                ORDER BY l.loopme_campaign_id
+            ) AS rn
+        FROM {{ source('locality_poc_share_silver', 'loopme') }} l
+        INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+            ON l.maid = ita.IDENTITY AND ita.ID_TYPE IN ('aaid', 'idfa')
+
+        UNION ALL
+
+        -- IP fallback — only for loopme rows with no MAID match
+        SELECT
+            ita.AKKIO_ID,
+            l.locality_campaign_id,
+            l.loopme_campaign_id,
+            ROW_NUMBER() OVER (
+                PARTITION BY ita.AKKIO_ID, l.locality_campaign_id
+                ORDER BY l.loopme_campaign_id
+            ) AS rn
+        FROM {{ source('locality_poc_share_silver', 'loopme') }} l
+        INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+            ON l.ip = ita.IDENTITY AND ita.ID_TYPE = 'ip'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM {{ ref('identity_to_akkio_deduped') }} ita_maid
+            WHERE l.maid = ita_maid.IDENTITY AND ita_maid.ID_TYPE IN ('aaid', 'idfa')
+        )
+    )
+    WHERE rn = 1
 )
 
 SELECT
     fw.AKKIO_ID,
-    -- LoopMe enrichment: campaign ID and conversion flag
     conv.loopme_campaign_id AS LOOPME_CAMPAIGN_ID,
     CASE WHEN conv.AKKIO_ID IS NOT NULL THEN TRUE ELSE FALSE END AS HAS_LOOPME_CONVERSION,
-    -- Include ALL freewheel columns (70+ fields)
     fw.transaction_id,
     fw.ad_unit_id,
     fw.event_start_time,
