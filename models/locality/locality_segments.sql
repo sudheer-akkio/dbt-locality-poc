@@ -1,18 +1,18 @@
 {{
     config(
         materialized='table',
-        unique_key=['AKKIO_ID', 'SEGMENT_ID', 'SEGMENT_SOURCE']
+        unique_key=['LOCALITY_ID', 'SEGMENT_ID', 'SEGMENT_SOURCE']
     )
 }}
 
 -- Union of Inscape, Datonics, and OnSpot segments
 -- Datonics uses hierarchical L1-L5 structure; Inscape and OnSpot use flat SEGMENT_NAME.
 -- OnSpot data comes from ref(onspot_audience_data) (incremental copy from Delta Share);
--- device_id is joined to identity_to_akkio_deduped to resolve ~65% of devices to households.
+-- device_id is joined to identity_to_locality_deduped to resolve ~65% of devices to households.
 
 WITH inscape_segments AS (
     SELECT DISTINCT
-        ita.AKKIO_ID,
+        ita.LOCALITY_ID,
         i_seg.segment_id AS SEGMENT_ID,
         {{ normalize_segment_name('i_seg.segment_name') }} AS SEGMENT_NAME,
         CAST(NULL AS STRING) AS SEGMENT_L1,
@@ -23,14 +23,14 @@ WITH inscape_segments AS (
         CAST(NULL AS STRING) AS SEGMENT_DESCRIPTION,
         'inscape' AS SEGMENT_SOURCE
     FROM (SELECT * FROM {{ source('locality_poc_share_silver', 'inscape_segments') }}) i_seg
-    INNER JOIN (SELECT * FROM {{ ref('identity_to_akkio_deduped') }}) ita
+    INNER JOIN (SELECT * FROM {{ ref('identity_to_locality_deduped') }}) ita
         ON i_seg.ip_address = ita.IDENTITY
         AND ita.ID_TYPE = 'ip'
 ),
 
 datonics_segments AS (
     SELECT
-        AKKIO_ID,
+        LOCALITY_ID,
         SEGMENT_ID,
         SEGMENT_NAME,
         SEGMENT_L1,
@@ -47,7 +47,7 @@ datonics_segments AS (
 -- Same pattern as Inscape but matches on any ID type (not just IP)
 onspot_segments AS (
     SELECT DISTINCT
-        ita.AKKIO_ID,
+        ita.LOCALITY_ID,
         o.audience_name AS SEGMENT_ID,
         {{ normalize_segment_name('o.audience_name') }} AS SEGMENT_NAME,
         CAST(NULL AS STRING) AS SEGMENT_L1,
@@ -58,7 +58,7 @@ onspot_segments AS (
         CAST(NULL AS STRING) AS SEGMENT_DESCRIPTION,
         'onspot' AS SEGMENT_SOURCE
     FROM (SELECT * FROM {{ ref('onspot_audience_data') }}) o
-    INNER JOIN (SELECT * FROM {{ ref('identity_to_akkio_deduped') }}) ita
+    INNER JOIN (SELECT * FROM {{ ref('identity_to_locality_deduped') }}) ita
         ON o.device_id = ita.IDENTITY
 )
 

@@ -86,27 +86,27 @@ sources:
           match the Experian identity graph.
 
 models:
-  - name: akkio_attributes_latest
+  - name: locality_attributes_latest
     description: >
       Household spine with decoded Experian behavioral attributes and spending patterns.
-      Rows: 108M | Grain: AKKIO_ID | Refresh: Full (~1 min) | Materialization: Table
+      Rows: 108M | Grain: LOCALITY_ID | Refresh: Full (~1 min) | Materialization: Table
       | :short-name:audience_attributes :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - AKKIO_ID
+            - LOCALITY_ID
     columns:
       - name: PARTITION_DATE
         description: "Current date when model was run | :akkio-context-ignore |<"
         tests:
           - not_null
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Unique household identifier"
         tests:
           - unique
           - not_null
-      - name: AKKIO_HH_ID
-        description: "Household identifier (same as AKKIO_ID for household-level data)"
+      - name: LOCALITY_HH_ID
+        description: "Household identifier (same as LOCALITY_ID for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: GENDER
@@ -266,7 +266,7 @@ models:
       - name: DBT_UPDATED_AT
         description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
 
-  - name: identity_to_akkio_deduped
+  - name: identity_to_locality_deduped
     description: >
       Deduplicated identity graph for joins (MATERIALIZED TABLE).
       Rows: 1.76B | Refresh: Full (~5-10 min)
@@ -276,33 +276,33 @@ models:
           combination_of_columns:
             - IDENTITY
             - ID_TYPE
-            - AKKIO_ID
+            - LOCALITY_ID
     columns:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
         description: "Type of identity | :lower |<"
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Associated household ID"
 
   - name: locality_campaign_exposure
     description: >
       Campaign impressions from FreeWheel enriched with LoopMe conversion data.
-      Rows: 2.9B | Grain: (TRANSACTION_ID, AKKIO_ID) | Partition: EVENT_DATE (monthly)
+      Rows: 2.9B | Grain: (TRANSACTION_ID, LOCALITY_ID) | Partition: EVENT_DATE (monthly)
       | :short-name:campaign_exposure |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - TRANSACTION_ID
-            - AKKIO_ID
+            - LOCALITY_ID
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Household identifier"
         tests:
           - not_null
           - relationships:
-              to: ref('akkio_attributes_latest')
-              field: AKKIO_ID
+              to: ref('locality_attributes_latest')
+              field: LOCALITY_ID
       - name: LOOPME_CAMPAIGN_ID
         description: "LoopMe campaign identifier (if conversion occurred)"
       - name: HAS_LOOPME_CONVERSION
@@ -336,7 +336,7 @@ models:
     description: >
       Incremental copy of OnSpot audience data from the Delta Share into the project schema.
       Source: locality_poc_share_silver.onspot (same Delta Share as other silver tables).
-      Grain: (device_id, audience_name). Used by akkio_segments when OnSpot integration is enabled.
+      Grain: (device_id, audience_name). Used by locality_segments when OnSpot integration is enabled.
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -344,31 +344,31 @@ models:
             - audience_name
     columns:
       - name: device_id
-        description: "Device identifier; joined to identity_to_akkio_deduped for household resolution"
+        description: "Device identifier; joined to identity_to_locality_deduped for household resolution"
         tests:
           - not_null
       - name: audience_name
-        description: "OnSpot audience name; used as SEGMENT_ID in akkio_segments"
+        description: "OnSpot audience name; used as SEGMENT_ID in locality_segments"
         tests:
           - not_null
 
-  - name: v_agg_akkio_ind
+  - name: v_agg_locality_ind
     description: >
       Individual-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2.
-      Rows: 108M | Grain: AKKIO_ID | Materialization: Table
+      Rows: 108M | Grain: LOCALITY_ID | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - AKKIO_ID
+            - LOCALITY_ID
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: AKKIO_HH_ID
-        description: "Household identifier (same as AKKIO_ID)"
+      - name: LOCALITY_HH_ID
+        description: "Household identifier (same as LOCALITY_ID)"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
       - name: GENDER
@@ -432,18 +432,18 @@ models:
         tests:
           - not_null
 
-  - name: v_agg_akkio_hh
+  - name: v_agg_locality_hh
     description: >
       Household-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2 including children and household size.
-      Rows: 108M | Grain: AKKIO_HH_ID | Materialization: Table
+      Rows: 108M | Grain: LOCALITY_HH_ID | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - AKKIO_HH_ID
+            - LOCALITY_HH_ID
     columns:
-      - name: AKKIO_HH_ID
+      - name: LOCALITY_HH_ID
         description: "Household identifier"
         tests:
           - not_null
@@ -472,22 +472,22 @@ models:
         tests:
           - not_null
 
-  - name: v_agg_akkio_ind_media
+  - name: v_agg_locality_ind_media
     description: >
       Individual-level media consumption table for analytics.
       Contains streaming services, TV networks, devices, and genres watched.
-      Source: experian_consumerview2 | Grain: AKKIO_ID | Materialization: Table
+      Source: experian_consumerview2 | Grain: LOCALITY_ID | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - AKKIO_ID
+            - LOCALITY_ID
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: AKKIO_HH_ID
+      - name: LOCALITY_HH_ID
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -514,22 +514,22 @@ models:
         tests:
           - not_null
 
-  - name: v_agg_akkio_ind_cpg
+  - name: v_agg_locality_ind_cpg
     description: >
       Individual-level CPG (Consumer Packaged Goods) purchase table for analytics.
       Contains purchase categories, spending levels, and shopping behavior.
-      Source: experian_consumerview2 | Grain: AKKIO_ID | Materialization: Table
+      Source: experian_consumerview2 | Grain: LOCALITY_ID | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - AKKIO_ID
+            - LOCALITY_ID
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: AKKIO_HH_ID
+      - name: LOCALITY_HH_ID
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -568,22 +568,22 @@ models:
         tests:
           - not_null
 
-  - name: akkio_segments
+  - name: locality_segments
     description: >
       Household segment assignments from Inscape, Datonics, and OnSpot.
       Inscape: TV viewing and ad exposure patterns (~410M rows).
       Datonics: Behavioral and demographic segments from 609B source, deduplicated (~60B rows).
-      Grain: (AKKIO_ID, SEGMENT_ID, SEGMENT_SOURCE).
+      Grain: (LOCALITY_ID, SEGMENT_ID, SEGMENT_SOURCE).
       AGGREGATION: GROUP BY only SEGMENT_ID - all other segment columns are derived from it.
       | :short-name:audience_segments :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - AKKIO_ID
+            - LOCALITY_ID
             - SEGMENT_ID
             - SEGMENT_SOURCE
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         description: "Household identifier"
         tests:
           - not_null

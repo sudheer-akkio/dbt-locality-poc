@@ -1,13 +1,13 @@
 {{
     config(
         materialized='table',
-        unique_key=['AKKIO_ID', 'SEGMENT_ID', 'SEGMENT_SOURCE']
+        unique_key=['LOCALITY_ID', 'SEGMENT_ID', 'SEGMENT_SOURCE']
     )
 }}
 
 -- Consolidated Datonics segments processing
 -- Processes all id_types in one pass with DISTINCT to handle:
---   1. Same AKKIO_ID reached via multiple id_types (ip, aaid, idfa, ctv)
+--   1. Same LOCALITY_ID reached via multiple id_types (ip, aaid, idfa, ctv)
 --   2. Deduplication at join time (never materializes 118B intermediate rows)
 --
 -- Leaf-filtering disabled due to scale (NOT EXISTS infeasible at 600B+ rows)
@@ -25,7 +25,7 @@ WITH all_category_segments AS (
 )
 
 SELECT DISTINCT
-    ita.AKKIO_ID,
+    ita.LOCALITY_ID,
     d.segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         seg.L1,
@@ -42,7 +42,7 @@ SELECT DISTINCT
     seg.segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
 FROM {{ source('locality_poc_share_silver', 'datonics_ids') }} d
-INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
     ON d.id = ita.IDENTITY
     AND d.id_type = ita.ID_TYPE
 INNER JOIN all_category_segments seg

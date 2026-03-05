@@ -1,8 +1,8 @@
 {{ config(
     materialized='table',
-    alias='V_AGG_AKKIO_IND',
+    alias='V_AGG_LOCALITY_IND',
     post_hook=[
-        "alter table {{this}} cluster by (PARTITION_DATE, AKKIO_ID)",
+        "alter table {{this}} cluster by (PARTITION_DATE, LOCALITY_ID)",
     ]
 )}}
 
@@ -10,16 +10,16 @@
     Locality Individual Aggregation Table
 
     Purpose: Individual-level aggregation of demographic attributes for analytics.
-    Source: akkio_attributes_latest (now with real ConsumerView2 data)
-    Grain: One row per AKKIO_ID (household)
+    Source: locality_attributes_latest (now with real ConsumerView2 data)
+    Grain: One row per LOCALITY_ID (household)
 
     Note: Like vizio, this is household-level data formatted for insights compatibility.
 */
 
 SELECT
     -- Primary Keys
-    attr.AKKIO_ID,
-    attr.AKKIO_HH_ID,
+    attr.LOCALITY_ID,
+    attr.LOCALITY_HH_ID,
 
     -- Weight (1.0 for equal weighting - FLOAT type required for insights)
     1.0 AS WEIGHT,
@@ -42,7 +42,7 @@ SELECT
     -- ============================================================
     -- HOUSEHOLD ATTRIBUTES
     -- ============================================================
-    -- HOME_OWNERSHIP is now 'Homeowner'/'Renter' from akkio_attributes_latest
+    -- HOME_OWNERSHIP is now 'Homeowner'/'Renter' from locality_attributes_latest
     CASE attr.HOME_OWNERSHIP
         WHEN 'Homeowner' THEN 1
         WHEN 'Renter' THEN 0
@@ -84,4 +84,4 @@ SELECT
     -- Temporal
     attr.PARTITION_DATE
 
-FROM {{ ref('akkio_attributes_latest') }} attr
+FROM {{ ref('locality_attributes_latest') }} attr

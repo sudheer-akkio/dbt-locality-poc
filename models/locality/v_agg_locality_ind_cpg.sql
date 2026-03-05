@@ -1,8 +1,8 @@
 {{ config(
     materialized='table',
-    alias='V_AGG_AKKIO_IND_CPG',
+    alias='V_AGG_LOCALITY_IND_CPG',
     post_hook=[
-        "alter table {{this}} cluster by (PARTITION_DATE, AKKIO_ID)",
+        "alter table {{this}} cluster by (PARTITION_DATE, LOCALITY_ID)",
     ]
 )}}
 
@@ -10,16 +10,16 @@
     Locality Individual CPG (Consumer Packaged Goods) Table
 
     Purpose: Purchase behavior and spending patterns for analytics.
-    Source: experian_consumerview2 (joined via akkio_attributes_latest.LUID)
-    Grain: One row per AKKIO_ID (household)
+    Source: experian_consumerview2 (joined via locality_attributes_latest.LUID)
+    Grain: One row per LOCALITY_ID (household)
 
     Contains: Categories purchased, purchase frequency, spending levels
 */
 
 SELECT
     -- Primary Keys
-    attr.AKKIO_ID,
-    attr.AKKIO_HH_ID,
+    attr.LOCALITY_ID,
+    attr.LOCALITY_HH_ID,
 
     -- Weight (1.0 for equal weighting)
     1.0 AS WEIGHT,
@@ -111,6 +111,6 @@ SELECT
     -- Temporal
     attr.PARTITION_DATE
 
-FROM {{ ref('akkio_attributes_latest') }} attr
+FROM {{ ref('locality_attributes_latest') }} attr
 LEFT JOIN {{ source('locality_poc_share_silver', 'experian_consumerview2') }} e_cv
     ON attr.LUID = e_cv.recd_luid

@@ -6,6 +6,6 @@
 }}
 
 -- Shallow view for backwards compatibility with Insights system
--- Points to the actual table AKKIO_ATTRIBUTES_LATEST
+-- Points to the actual table LOCALITY_ATTRIBUTES_LATEST
 
-SELECT * FROM {{ ref('akkio_attributes_latest') }}
+SELECT * FROM {{ ref('locality_attributes_latest') }}

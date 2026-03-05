@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains the dbt models for processing Datonics segment data and mapping it to AKKIO_IDs. Due to the massive scale of the datonics_ids table (609B rows), we use a batched approach with hierarchical leaf-filtering to reduce redundancy.
+This directory contains the dbt models for processing Datonics segment data and mapping it to LOCALITY_IDs. Due to the massive scale of the datonics_ids table (609B rows), we use a batched approach with hierarchical leaf-filtering to reduce redundancy.
 
 ## The Problem
 
@@ -40,7 +40,7 @@ WHERE SEGMENT_L2 = 'Luxury'
 
 -- Find IDs in Automotive Luxury but not Travel Luxury
 WHERE SEGMENT_L1 = 'Automotive' AND SEGMENT_L2 = 'Luxury'
-  AND AKKIO_ID NOT IN (SELECT AKKIO_ID WHERE SEGMENT_L1 = 'Travel' AND SEGMENT_L2 = 'Luxury')
+  AND LOCALITY_ID NOT IN (SELECT LOCALITY_ID WHERE SEGMENT_L1 = 'Travel' AND SEGMENT_L2 = 'Luxury')
 ```
 
 ### 3. Category Batching
@@ -97,7 +97,7 @@ The single-pass approach should allow the database to optimize across all catego
 
 | Column | Type | Description |
 |--------|------|-------------|
-| AKKIO_ID | STRING | Akkio unique identifier |
+| LOCALITY_ID | STRING | Locality unique identifier |
 | SEGMENT_ID | STRING | Datonics segment ID |
 | SEGMENT_L1 | STRING | Top-level category |
 | SEGMENT_L2 | STRING | Second-level segment |
