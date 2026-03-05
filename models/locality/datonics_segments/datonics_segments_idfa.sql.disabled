@@ -20,7 +20,7 @@ WITH all_category_segments AS (
 )
 
 SELECT DISTINCT
-    ita.AKKIO_ID,
+    ita.LOCALITY_ID,
     d.segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         seg.L1,
@@ -37,7 +37,7 @@ SELECT DISTINCT
     seg.segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
 FROM {{ source('locality_poc_share_silver', 'datonics_ids') }} d
-INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
     ON d.id = ita.IDENTITY
     AND d.id_type = ita.ID_TYPE
 INNER JOIN all_category_segments seg

@@ -33,14 +33,14 @@ models:
 
   - name: datonics_all_segments
     description: |
-      All datonics segment memberships mapped to AKKIO_IDs across all 29 categories.
+      All datonics segment memberships mapped to LOCALITY_IDs across all 29 categories.
       Dynamically processes all categories found in the metadata table.
       Applies leaf-filtering to remove redundant parent segments (e.g., if an ID has
       'Automotive > Luxury > Owners', we don't store separate rows for 'Automotive > Luxury'
       and 'Automotive').
     columns:
-      - name: AKKIO_ID
-        description: Akkio unique identifier
+      - name: LOCALITY_ID
+        description: Locality unique identifier
       - name: SEGMENT_ID
         description: Datonics segment ID
       - name: SEGMENT_NAME

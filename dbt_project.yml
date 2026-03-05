@@ -53,25 +53,25 @@ models:
         - locality_poc
         - monthly
       +database: locality_dev
-      akkio_attributes_latest:
+      locality_attributes_latest:
         +materialized: table
-        +alias: AKKIO_ATTRIBUTES_LATEST
+        +alias: LOCALITY_ATTRIBUTES_LATEST
         +post_hook:
-          - "alter table {{ this }} cluster by (akkio_id)"
-      identity_to_akkio_deduped:
+          - "alter table {{ this }} cluster by (locality_id)"
+      identity_to_locality_deduped:
         +materialized: table  # MUST be table - reused 3+ times downstream
-        +alias: IDENTITY_TO_AKKIO_DEDUPED
+        +alias: IDENTITY_TO_LOCALITY_DEDUPED
         +post_hook:
-          - "alter table {{ this }} cluster by (akkio_id)"
-      akkio_segments:
+          - "alter table {{ this }} cluster by (locality_id)"
+      locality_segments:
         +materialized: incremental
-        +unique_key: ['akkio_id', 'segment_id', 'segment_source']
-        +alias: AKKIO_SEGMENTS
+        +unique_key: ['locality_id', 'segment_id', 'segment_source']
+        +alias: LOCALITY_SEGMENTS
         +post_hook:
-          - "alter table {{ this }} cluster by (akkio_id, segment_source)"
+          - "alter table {{ this }} cluster by (locality_id, segment_source)"
       locality_campaign_exposure:
         +materialized: incremental
-        +unique_key: ['transaction_id', 'akkio_id']
+        +unique_key: ['transaction_id', 'locality_id']
         +partition_by: exposure_date
         +alias: LOCALITY_CAMPAIGN_EXPOSURE
         # NOTE: Cannot use clustering on partitioned tables in Databricks
@@ -82,16 +82,16 @@ models:
         +alias: ONSPOT_AUDIENCE_DATA
         +post_hook:
           - "alter table {{ this }} cluster by (device_id)"
-      v_agg_akkio_ind:
+      v_agg_locality_ind:
         +materialized: table
-        +alias: V_AGG_AKKIO_IND
+        +alias: V_AGG_LOCALITY_IND
         +post_hook:
-          - "alter table {{ this }} cluster by (partition_date, akkio_id)"
-      v_agg_akkio_hh:
+          - "alter table {{ this }} cluster by (partition_date, locality_id)"
+      v_agg_locality_hh:
         +materialized: table
-        +alias: V_AGG_AKKIO_HH
+        +alias: V_AGG_LOCALITY_HH
         +post_hook:
-          - "alter table {{ this }} cluster by (partition_date, akkio_hh_id)"
-      v_akkio_attributes_latest:
+          - "alter table {{ this }} cluster by (partition_date, locality_hh_id)"
+      v_locality_attributes_latest:
         +materialized: view
-        +alias: V_AKKIO_ATTRIBUTES_LATEST
+        +alias: V_LOCALITY_ATTRIBUTES_LATEST

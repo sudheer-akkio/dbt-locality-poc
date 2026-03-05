@@ -1,10 +1,10 @@
 {% macro process_datonics_category(category_name) %}
 
--- Process a single datonics category with leaf-filtering and AKKIO_ID join
+-- Process a single datonics category with leaf-filtering and LOCALITY_ID join
 -- This macro:
 --   1. Filters to the specified category segments
 --   2. Applies leaf-filtering (removes redundant parent segments per ID)
---   3. Joins to identity_to_akkio_deduped by id_type for efficiency
+--   3. Joins to identity_to_locality_deduped by id_type for efficiency
 --   4. Pivots segment hierarchy into L1-L5 columns
 
 WITH category_segments AS (
@@ -50,9 +50,9 @@ parent_child AS (
     )
 ),
 
-{{ id_type }}_with_akkio AS (
+{{ id_type }}_with_locality AS (
     SELECT DISTINCT
-        ita.AKKIO_ID,
+        ita.LOCALITY_ID,
         leaf.segment,
         seg.segment_name,
         seg.segment_description,
@@ -62,7 +62,7 @@ parent_child AS (
         seg.L4,
         seg.L5
     FROM {{ id_type }}_leaf leaf
-    INNER JOIN {{ ref('identity_to_akkio_deduped') }} ita
+    INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
         ON leaf.id = ita.IDENTITY
         AND leaf.id_type = ita.ID_TYPE
     INNER JOIN category_segments seg
@@ -72,7 +72,7 @@ parent_child AS (
 {% endfor %}
 
 SELECT
-    AKKIO_ID,
+    LOCALITY_ID,
     segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         L1,
@@ -88,12 +88,12 @@ SELECT
     L5 AS SEGMENT_L5,
     segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
-FROM ip_with_akkio
+FROM ip_with_locality
 
 UNION ALL
 
 SELECT
-    AKKIO_ID,
+    LOCALITY_ID,
     segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         L1,
@@ -109,12 +109,12 @@ SELECT
     L5 AS SEGMENT_L5,
     segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
-FROM aaid_with_akkio
+FROM aaid_with_locality
 
 UNION ALL
 
 SELECT
-    AKKIO_ID,
+    LOCALITY_ID,
     segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         L1,
@@ -130,12 +130,12 @@ SELECT
     L5 AS SEGMENT_L5,
     segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
-FROM idfa_with_akkio
+FROM idfa_with_locality
 
 UNION ALL
 
 SELECT
-    AKKIO_ID,
+    LOCALITY_ID,
     segment AS SEGMENT_ID,
     CONCAT_WS(', ',
         L1,
@@ -151,6 +151,6 @@ SELECT
     L5 AS SEGMENT_L5,
     segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
-FROM ctv_with_akkio
+FROM ctv_with_locality
 
 {% endmacro %}

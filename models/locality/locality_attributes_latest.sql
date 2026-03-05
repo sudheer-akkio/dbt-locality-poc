@@ -2,7 +2,7 @@
     config(
         materialized='table',
         post_hook=[
-            "alter table {{this}} cluster by (AKKIO_ID)",
+            "alter table {{this}} cluster by (LOCALITY_ID)",
         ]
     )
 }}
@@ -21,8 +21,8 @@ WITH one_luid_per_household AS (
 
 SELECT
     -- Primary Keys
-    olh.hh_id AS AKKIO_ID,
-    olh.hh_id AS AKKIO_HH_ID,
+    olh.hh_id AS LOCALITY_ID,
+    olh.hh_id AS LOCALITY_HH_ID,
     olh.luid AS LUID,
 
     -- Temporal

@@ -46,18 +46,18 @@ This document provides a comprehensive overview of the Locality data architectur
 │              │                                           │                      │
 │              ▼                                           │                      │
 │  ┌────────────────────────────┐                          │                      │
-│  │ identity_to_akkio_deduped  │                          │                      │
+│  │ identity_to_locality_deduped  │                          │                      │
 │  │     (1.76B rows)           │◄─────────────────────────┘                      │
 │  │  Links: IP/MAID/CTV → HH   │                                                 │
 │  └───────────┬────────────────┘                                                 │
 │              │                                                                  │
 │              ▼                                                                  │
 │  ┌────────────────────────────┐      ┌──────────────────────────────────────┐   │
-│  │  akkio_attributes_latest   │──────│        Analytics Views               │   │
-│  │     (108M households)      │      │  - V_AGG_AKKIO_IND (Individual)      │   │
-│  │  - Demographics            │      │  - V_AGG_AKKIO_HH (Household)        │   │
-│  │  - Interests & Behaviors   │      │  - V_AGG_AKKIO_IND_CPG (Purchase)    │   │
-│  │  - Financial & Vehicle     │      │  - V_AGG_AKKIO_IND_MEDIA (Media)     │   │
+│  │  locality_attributes_latest   │──────│        Analytics Views               │   │
+│  │     (108M households)      │      │  - V_AGG_LOCALITY_IND (Individual)      │   │
+│  │  - Demographics            │      │  - V_AGG_LOCALITY_HH (Household)        │   │
+│  │  - Interests & Behaviors   │      │  - V_AGG_LOCALITY_IND_CPG (Purchase)    │   │
+│  │  - Financial & Vehicle     │      │  - V_AGG_LOCALITY_IND_MEDIA (Media)     │   │
 │  └───────────┬────────────────┘      └──────────────────────────────────────┘   │
 └──────────────┼──────────────────────────────────────────────────────────────────┘
                │
@@ -67,17 +67,17 @@ This document provides a comprehensive overview of the Locality data architectur
 │  ┌─────────────────────────┐  ┌──────────────────────────┐  ┌──────────────────┐│
 │  │   inscape_segments      │  │    datonics_ids (609B)   │  │ onspot_audience  ││
 │  │ (TV Viewing/Ad Exposure)│  │  (Behavioral Segments)   │  │   _data (~20GB)  ││
-│  │ - ip_address → AKKIO_ID │  │ - ip/aaid/idfa/ctv →     │  │ - device_id →    ││
-│  │ - segment_id, name      │  │   AKKIO_ID               │  │   AKKIO_ID       ││
+│  │ - ip_address → LOCALITY_ID │  │ - ip/aaid/idfa/ctv →     │  │ - device_id →    ││
+│  │ - segment_id, name      │  │   LOCALITY_ID               │  │   LOCALITY_ID       ││
 │  │                         │  │ - 1,191 segs, 29 cats    │  │ - audience_name  ││
 │  └───────────┬─────────────┘  └────────────┬─────────────┘  └────────┬─────────┘│
 │              │                             │                         │          │
 │              └─────────────┬───────────────┘─────────────────────────┘          │
 │                            ▼                                                    │
 │              ┌─────────────────────────────┐                                    │
-│              │       akkio_segments        │                                    │
+│              │       locality_segments        │                                    │
 │              │  (Unified Segment Table)    │                                    │
-│              │  - AKKIO_ID, SEGMENT_ID     │                                    │
+│              │  - LOCALITY_ID, SEGMENT_ID     │                                    │
 │              │  - L1-L5 hierarchy columns  │                                    │
 │              └─────────────────────────────┘                                    │
 │  NOTE: OnSpot integration is pending team review (commented out in code)        │
@@ -88,11 +88,11 @@ This document provides a comprehensive overview of the Locality data architectur
 
 | Principle                        | Implementation                                                                            |
 | -------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Household-Centric**            | All data resolves to `AKKIO_ID` (household identifier) as the primary key                 |
+| **Household-Centric**            | All data resolves to `LOCALITY_ID` (household identifier) as the primary key                 |
 | **Identity Resolution**          | Multi-device identity graph links IPs, MAIDs, IDFAs, CTVs to households                   |
 | **Hierarchical Segments**        | Datonics segments stored as L1-L5 columns for flexible querying                           |
 | **Incremental Processing**       | Campaign exposure uses incremental strategy for efficiency                                |
-| **Materialized for Performance** | Critical join tables (identity_to_akkio_deduped) are materialized to avoid repeated scans |
+| **Materialized for Performance** | Critical join tables (identity_to_locality_deduped) are materialized to avoid repeated scans |
 
 ---
 
@@ -139,7 +139,7 @@ sources:
 
 ### 3.1 The Identity Graph Approach
 
-The foundation of the architecture is a **household-centric identity graph** that maps multiple device identifiers to a single household ID (`AKKIO_ID`).
+The foundation of the architecture is a **household-centric identity graph** that maps multiple device identifiers to a single household ID (`LOCALITY_ID`).
 
 **Identity Types Supported:**
 
@@ -148,20 +148,20 @@ The foundation of the architecture is a **household-centric identity graph** tha
 - `idfa` — iOS Identifier for Advertisers
 - `ctv` — Connected TV device IDs
 
-### 3.2 Identity-to-Akkio Mapping (`identity_to_akkio_deduped`)
+### 3.2 Identity-to-Locality Mapping (`identity_to_locality_deduped`)
 
 This is a **critical materialized table** that serves as the join bridge between raw data sources and the household spine.
 
 ```sql
--- identity_to_akkio_deduped.sql
+-- identity_to_locality_deduped.sql
 SELECT DISTINCT
     e_map.identity AS IDENTITY,
     e_map.id_type AS ID_TYPE,
-    attr.AKKIO_ID,
-    attr.AKKIO_HH_ID
+    attr.LOCALITY_ID,
+    attr.LOCALITY_HH_ID
 FROM experian_consolidated_id_map e_map
-INNER JOIN akkio_attributes_latest attr
-    ON e_map.hh_id = attr.AKKIO_ID
+INNER JOIN locality_attributes_latest attr
+    ON e_map.hh_id = attr.LOCALITY_ID
 WHERE e_map.id_type IN ('ip', 'ctv', 'idfa', 'aaid')
 ```
 
@@ -172,14 +172,14 @@ WHERE e_map.id_type IN ('ip', 'ctv', 'idfa', 'aaid')
 
 ```sql
 -- Clustering for efficient lookups
-ALTER TABLE identity_to_akkio_deduped CLUSTER BY (IDENTITY, ID_TYPE)
+ALTER TABLE identity_to_locality_deduped CLUSTER BY (IDENTITY, ID_TYPE)
 ```
 
 ---
 
 ## 4. Household Attribute Spine
 
-### 4.1 Core Attributes Table (`akkio_attributes_latest`)
+### 4.1 Core Attributes Table (`locality_attributes_latest`)
 
 The household spine contains 108M households enriched with demographic, behavioral, and interest attributes from Experian ConsumerView2.
 
@@ -279,7 +279,7 @@ CONCAT_WS(',',
 
 | Category          | Columns                                                                  | Description                |
 | ----------------- | ------------------------------------------------------------------------ | -------------------------- |
-| **Identity**      | AKKIO_ID, AKKIO_HH_ID, LUID                                              | Household identifiers      |
+| **Identity**      | LOCALITY_ID, LOCALITY_HH_ID, LUID                                              | Household identifiers      |
 | **Demographics**  | GENDER, AGE, AGE_BUCKET, ETHNICITY, EDUCATION_LEVEL, MARITAL_STATUS      | Individual characteristics |
 | **Geographic**    | STATE, ZIP11, COUNTY_NAME                                                | Location data              |
 | **Employment**    | OCCUPATION, OCCUPATION_TITLE                                             | Professional information   |
@@ -303,13 +303,13 @@ This model links FreeWheel ad impressions to households and enriches them with L
 ```
 FreeWheel Logs (8.26B rows)
         │
-        ├──► Match IP → AKKIO_ID
-        ├──► Match Device ID → AKKIO_ID
+        ├──► Match IP → LOCALITY_ID
+        ├──► Match Device ID → LOCALITY_ID
         │
         ▼
 Household-Matched Impressions
         │
-        ├──► Join LoopMe conversions by AKKIO_ID + campaign
+        ├──► Join LoopMe conversions by LOCALITY_ID + campaign
         │
         ▼
 Enriched Campaign Exposure (2.9B rows)
@@ -322,13 +322,13 @@ Enriched Campaign Exposure (2.9B rows)
 WITH freewheel_with_households AS (
     SELECT
         fw.*,
-        COALESCE(ita_ip.AKKIO_ID, ita_device.AKKIO_ID) AS AKKIO_ID
+        COALESCE(ita_ip.LOCALITY_ID, ita_device.LOCALITY_ID) AS LOCALITY_ID
     FROM freewheel_logs_gold fw
-    LEFT JOIN identity_to_akkio_deduped ita_ip
+    LEFT JOIN identity_to_locality_deduped ita_ip
         ON fw.ip_address = ita_ip.IDENTITY AND ita_ip.ID_TYPE = 'ip'
-    LEFT JOIN identity_to_akkio_deduped ita_device
+    LEFT JOIN identity_to_locality_deduped ita_device
         ON fw.device_id = ita_device.IDENTITY
-    WHERE COALESCE(ita_ip.AKKIO_ID, ita_device.AKKIO_ID) IS NOT NULL
+    WHERE COALESCE(ita_ip.LOCALITY_ID, ita_device.LOCALITY_ID) IS NOT NULL
 )
 ```
 
@@ -338,23 +338,23 @@ WITH freewheel_with_households AS (
 -- LoopMe conversion matching
 loopme_conversions AS (
     SELECT DISTINCT
-        ita.AKKIO_ID,
+        ita.LOCALITY_ID,
         l.locality_campaign_id,
         l.loopme_campaign_id
     FROM loopme l
-    INNER JOIN identity_to_akkio_deduped ita
+    INNER JOIN identity_to_locality_deduped ita
         ON (l.maid = ita.IDENTITY) OR (l.ip = ita.IDENTITY)
 )
 
 -- Enrichment with conversion flag
 SELECT
-    fw.AKKIO_ID,
+    fw.LOCALITY_ID,
     conv.loopme_campaign_id AS LOOPME_CAMPAIGN_ID,
-    CASE WHEN conv.AKKIO_ID IS NOT NULL THEN TRUE ELSE FALSE END AS HAS_LOOPME_CONVERSION,
+    CASE WHEN conv.LOCALITY_ID IS NOT NULL THEN TRUE ELSE FALSE END AS HAS_LOOPME_CONVERSION,
     -- ... 70+ FreeWheel columns
 FROM freewheel_with_households fw
 LEFT JOIN loopme_conversions conv
-    ON fw.AKKIO_ID = conv.AKKIO_ID
+    ON fw.LOCALITY_ID = conv.LOCALITY_ID
     AND fw.locality_campaign_id = conv.locality_campaign_id
 ```
 
@@ -363,7 +363,7 @@ LEFT JOIN loopme_conversions conv
 ```yaml
 config:
     materialized: incremental
-    unique_key: ['transaction_id', 'AKKIO_ID']
+    unique_key: ['transaction_id', 'LOCALITY_ID']
     incremental_strategy: merge
     partition_by: event_date
 ```
@@ -380,7 +380,7 @@ config:
 
 | Column                  | Description                          |
 | ----------------------- | ------------------------------------ |
-| `AKKIO_ID`              | Matched household identifier         |
+| `LOCALITY_ID`              | Matched household identifier         |
 | `HAS_LOOPME_CONVERSION` | Boolean: Did this household convert? |
 | `LOOPME_CAMPAIGN_ID`    | LoopMe campaign ID (if converted)    |
 | `TRANSACTION_ID`        | Unique FreeWheel impression ID       |
@@ -453,7 +453,7 @@ Processing 609B Datonics rows requires special consideration:
 -- Process all categories in single pass with DISTINCT for deduplication
 
 SELECT DISTINCT
-    ita.AKKIO_ID,
+    ita.LOCALITY_ID,
     d.segment AS SEGMENT_ID,
     CONCAT_WS(', ', seg.L1, seg.L2, seg.L3, seg.L4, seg.L5) AS SEGMENT_NAME,
     seg.L1 AS SEGMENT_L1,
@@ -464,7 +464,7 @@ SELECT DISTINCT
     seg.segment_description AS SEGMENT_DESCRIPTION,
     'datonics' AS SEGMENT_SOURCE
 FROM datonics_ids d
-INNER JOIN identity_to_akkio_deduped ita
+INNER JOIN identity_to_locality_deduped ita
     ON d.id = ita.IDENTITY AND d.id_type = ita.ID_TYPE
 INNER JOIN int_datonics_segments_metadata seg
     ON d.segment = seg.segment
@@ -476,22 +476,22 @@ INNER JOIN int_datonics_segments_metadata seg
 - **ID Type Matching**: Joins on both identity value AND type for accuracy
 - **Metadata Pre-computation**: Segment hierarchy computed once, reused across all queries
 
-### 6.5 Unified Segments Table (`akkio_segments`)
+### 6.5 Unified Segments Table (`locality_segments`)
 
-The final segments table unions Inscape and Datonics (with OnSpot integration prepared but commented out pending team review). When OnSpot is enabled, `akkio_segments` reads from the **model** `ref('onspot_audience_data')` (the project's incrementally maintained copy), not directly from the Delta Share.
+The final segments table unions Inscape and Datonics (with OnSpot integration prepared but commented out pending team review). When OnSpot is enabled, `locality_segments` reads from the **model** `ref('onspot_audience_data')` (the project's incrementally maintained copy), not directly from the Delta Share.
 
 ```sql
--- akkio_segments.sql
+-- locality_segments.sql
 WITH inscape_segments AS (
     SELECT DISTINCT
-        ita.AKKIO_ID,
+        ita.LOCALITY_ID,
         i_seg.segment_id AS SEGMENT_ID,
         normalize_segment_name(i_seg.segment_name) AS SEGMENT_NAME,
         NULL AS SEGMENT_L1, -- Inscape uses flat structure
         -- ...
         'inscape' AS SEGMENT_SOURCE
     FROM inscape_segments i_seg
-    INNER JOIN identity_to_akkio_deduped ita
+    INNER JOIN identity_to_locality_deduped ita
         ON i_seg.ip_address = ita.IDENTITY AND ita.ID_TYPE = 'ip'
 ),
 
@@ -501,9 +501,9 @@ datonics_segments AS (
 
 -- OnSpot integration (commented out in code, pending team review):
 -- onspot_segments AS (
---     SELECT DISTINCT ita.AKKIO_ID, o.audience_name AS SEGMENT_ID, ...
+--     SELECT DISTINCT ita.LOCALITY_ID, o.audience_name AS SEGMENT_ID, ...
 --     FROM {{ ref('onspot_audience_data') }} o
---     INNER JOIN identity_to_akkio_deduped ita ON o.device_id = ita.IDENTITY
+--     INNER JOIN identity_to_locality_deduped ita ON o.device_id = ita.IDENTITY
 -- )
 
 SELECT * FROM inscape_segments
@@ -517,7 +517,7 @@ SELECT * FROM datonics_segments
 
 | Column                | Type   | Description                                       |
 | --------------------- | ------ | ------------------------------------------------- |
-| `AKKIO_ID`            | STRING | Household identifier                              |
+| `LOCALITY_ID`            | STRING | Household identifier                              |
 | `SEGMENT_ID`          | STRING | Unique segment identifier                         |
 | `SEGMENT_NAME`        | STRING | Human-readable segment name                       |
 | `SEGMENT_L1`          | STRING | Category (Datonics only)                          |
@@ -532,22 +532,22 @@ SELECT * FROM datonics_segments
 
 ```sql
 -- Find all households in Automotive category
-SELECT DISTINCT AKKIO_ID
-FROM akkio_segments
+SELECT DISTINCT LOCALITY_ID
+FROM locality_segments
 WHERE SEGMENT_L1 = 'Automotive';
 
 -- Find luxury auto owners (any subcategory)
-SELECT DISTINCT AKKIO_ID
-FROM akkio_segments
+SELECT DISTINCT LOCALITY_ID
+FROM locality_segments
 WHERE SEGMENT_L1 = 'Automotive' AND SEGMENT_L2 = 'Luxury';
 
 -- Find households in both auto and travel luxury
-SELECT AKKIO_ID
-FROM akkio_segments
+SELECT LOCALITY_ID
+FROM locality_segments
 WHERE SEGMENT_L1 = 'Automotive' AND SEGMENT_L2 = 'Luxury'
 INTERSECT
-SELECT AKKIO_ID
-FROM akkio_segments
+SELECT LOCALITY_ID
+FROM locality_segments
 WHERE SEGMENT_L1 = 'Travel' AND SEGMENT_L2 = 'Luxury';
 ```
 
@@ -561,17 +561,17 @@ The architecture produces four analytics-ready tables optimized for the Insights
 
 | Table                   | Grain                   | Purpose                       | Key Attributes                     |
 | ----------------------- | ----------------------- | ----------------------------- | ---------------------------------- |
-| `V_AGG_AKKIO_IND`       | Individual (AKKIO_ID)   | Core demographics & interests | Gender, Age, Income, Interests     |
-| `V_AGG_AKKIO_HH`        | Household (AKKIO_HH_ID) | Household composition         | Children, Home Value, Ownership    |
-| `V_AGG_AKKIO_IND_CPG`   | Individual              | Purchase behavior             | Categories, Spend Levels, Channels |
-| `V_AGG_AKKIO_IND_MEDIA` | Individual              | Media consumption             | Streaming, Devices, Genres         |
+| `V_AGG_LOCALITY_IND`       | Individual (LOCALITY_ID)   | Core demographics & interests | Gender, Age, Income, Interests     |
+| `V_AGG_LOCALITY_HH`        | Household (LOCALITY_HH_ID) | Household composition         | Children, Home Value, Ownership    |
+| `V_AGG_LOCALITY_IND_CPG`   | Individual              | Purchase behavior             | Categories, Spend Levels, Channels |
+| `V_AGG_LOCALITY_IND_MEDIA` | Individual              | Media consumption             | Streaming, Devices, Genres         |
 
-### 7.2 Individual Aggregation (`V_AGG_AKKIO_IND`)
+### 7.2 Individual Aggregation (`V_AGG_LOCALITY_IND`)
 
 ```sql
 SELECT
-    attr.AKKIO_ID,
-    attr.AKKIO_HH_ID,
+    attr.LOCALITY_ID,
+    attr.LOCALITY_HH_ID,
     1.0 AS WEIGHT,  -- For analytics platform
 
     -- Demographics with NULL handling
@@ -596,14 +596,14 @@ SELECT
     -- ...
 
     attr.PARTITION_DATE
-FROM akkio_attributes_latest attr
+FROM locality_attributes_latest attr
 ```
 
-### 7.3 Household Aggregation (`V_AGG_AKKIO_HH`)
+### 7.3 Household Aggregation (`V_AGG_LOCALITY_HH`)
 
 ```sql
 SELECT
-    attr.AKKIO_HH_ID,
+    attr.LOCALITY_HH_ID,
     1.0 AS WEIGHT,
     1.0 AS HH_WEIGHT,  -- Backwards compatibility
 
@@ -626,14 +626,14 @@ SELECT
     attr.HOME_VALUE_RANGE AS MEDIAN_HOME_VALUE_BY_STATE,
 
     attr.PARTITION_DATE
-FROM akkio_attributes_latest attr
+FROM locality_attributes_latest attr
 ```
 
-### 7.4 CPG Purchase Behavior (`V_AGG_AKKIO_IND_CPG`)
+### 7.4 CPG Purchase Behavior (`V_AGG_LOCALITY_IND_CPG`)
 
 ```sql
 SELECT
-    attr.AKKIO_ID,
+    attr.LOCALITY_ID,
     1.0 AS WEIGHT,
 
     -- Transaction categories
@@ -662,15 +662,15 @@ SELECT
     ) AS SHOPPING_CHANNELS,
 
     attr.PARTITION_DATE
-FROM akkio_attributes_latest attr
+FROM locality_attributes_latest attr
 LEFT JOIN experian_consumerview2 e_cv ON attr.LUID = e_cv.recd_luid
 ```
 
-### 7.5 Media Consumption (`V_AGG_AKKIO_IND_MEDIA`)
+### 7.5 Media Consumption (`V_AGG_LOCALITY_IND_MEDIA`)
 
 ```sql
 SELECT
-    attr.AKKIO_ID,
+    attr.LOCALITY_ID,
     1.0 AS WEIGHT,
 
     -- Streaming services
@@ -704,7 +704,7 @@ SELECT
     CASE WHEN e_cv.RC_OBM_cordcuttersV1 = 'Y' THEN 1 ELSE 0 END AS IS_CORD_CUTTER,
 
     attr.PARTITION_DATE
-FROM akkio_attributes_latest attr
+FROM locality_attributes_latest attr
 LEFT JOIN experian_consumerview2 e_cv ON attr.LUID = e_cv.recd_luid
 ```
 
@@ -716,11 +716,11 @@ LEFT JOIN experian_consumerview2 e_cv ON attr.LUID = e_cv.recd_luid
 
 | Model                            | Materialization | Reason                                         |
 | -------------------------------- | --------------- | ---------------------------------------------- |
-| `akkio_attributes_latest`        | TABLE           | Core spine, accessed by all downstream models  |
-| `identity_to_akkio_deduped`      | TABLE           | Critical join table, avoids 7.9B row re-scans  |
+| `locality_attributes_latest`        | TABLE           | Core spine, accessed by all downstream models  |
+| `identity_to_locality_deduped`      | TABLE           | Critical join table, avoids 7.9B row re-scans  |
 | `int_datonics_segments_metadata` | TABLE           | Small metadata table (1,191 rows)              |
 | `locality_campaign_exposure`     | INCREMENTAL     | 2.9B rows, only process new data               |
-| `akkio_segments`                 | INCREMENTAL     | Large table with append-only pattern           |
+| `locality_segments`                 | INCREMENTAL     | Large table with append-only pattern           |
 | `V_AGG_*` tables                 | TABLE           | Analytics outputs, need fast query performance |
 
 ### 8.2 Clustering Strategy
@@ -729,28 +729,28 @@ Tables are clustered to optimize query patterns:
 
 ```sql
 -- Household lookups
-ALTER TABLE akkio_attributes_latest CLUSTER BY (AKKIO_ID);
+ALTER TABLE locality_attributes_latest CLUSTER BY (LOCALITY_ID);
 
 -- Identity resolution
-ALTER TABLE identity_to_akkio_deduped CLUSTER BY (IDENTITY, ID_TYPE);
+ALTER TABLE identity_to_locality_deduped CLUSTER BY (IDENTITY, ID_TYPE);
 
 -- Segment queries
-ALTER TABLE akkio_segments CLUSTER BY (AKKIO_ID, SEGMENT_SOURCE);
+ALTER TABLE locality_segments CLUSTER BY (LOCALITY_ID, SEGMENT_SOURCE);
 
 -- Time-based analytics
-ALTER TABLE V_AGG_AKKIO_IND CLUSTER BY (PARTITION_DATE, AKKIO_ID);
+ALTER TABLE V_AGG_LOCALITY_IND CLUSTER BY (PARTITION_DATE, LOCALITY_ID);
 ```
 
 ### 8.3 Scale Metrics
 
 | Model                        | Rows  | Build Time  | Notes                                   |
 | ---------------------------- | ----- | ----------- | --------------------------------------- |
-| `akkio_attributes_latest`    | 108M  | ~1 min      | Full refresh                            |
-| `identity_to_akkio_deduped`  | 1.76B | 5-10 min    | Full refresh                            |
+| `locality_attributes_latest`    | 108M  | ~1 min      | Full refresh                            |
+| `identity_to_locality_deduped`  | 1.76B | 5-10 min    | Full refresh                            |
 | `locality_campaign_exposure` | 2.9B  | Incremental | Daily append                            |
-| `akkio_segments` (Inscape)   | ~410M | Variable    | IP-only matching                        |
-| `akkio_segments` (Datonics)  | ~60B  | Hours       | 609B source, deduplicated               |
-| `akkio_segments` (OnSpot)    | TBD   | TBD         | ~20GB source, ~65% match rate (pending) |
+| `locality_segments` (Inscape)   | ~410M | Variable    | IP-only matching                        |
+| `locality_segments` (Datonics)  | ~60B  | Hours       | 609B source, deduplicated               |
+| `locality_segments` (OnSpot)    | TBD   | TBD         | ~20GB source, ~65% match rate (pending) |
 
 ---
 
@@ -806,12 +806,12 @@ The `process_datonics_category` macro provides an alternative approach for per-c
 
 ```yaml
 models:
-  - name: akkio_attributes_latest
+  - name: locality_attributes_latest
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [AKKIO_ID]
+          combination_of_columns: [LOCALITY_ID]
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         tests: [unique, not_null]
       - name: INCOME
         tests:
@@ -822,15 +822,15 @@ models:
   - name: locality_campaign_exposure
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [TRANSACTION_ID, AKKIO_ID]
+          combination_of_columns: [TRANSACTION_ID, LOCALITY_ID]
     columns:
-      - name: AKKIO_ID
+      - name: LOCALITY_ID
         tests:
           - relationships:
-              to: ref('akkio_attributes_latest')
-              field: AKKIO_ID
+              to: ref('locality_attributes_latest')
+              field: LOCALITY_ID
 
-  - name: akkio_segments
+  - name: locality_segments
     columns:
       - name: SEGMENT_SOURCE
         tests:
@@ -843,11 +843,11 @@ models:
 All campaign exposures and segments must link to valid households:
 
 ```yaml
-- name: AKKIO_ID
+- name: LOCALITY_ID
   tests:
     - relationships:
-        to: ref('akkio_attributes_latest')
-        field: AKKIO_ID
+        to: ref('locality_attributes_latest')
+        field: LOCALITY_ID
 ```
 
 ---
@@ -859,20 +859,20 @@ All campaign exposures and segments must link to valid households:
 ```
 source(locality_poc_share_silver, onspot) ──► onspot_audience_data (incremental model)
                                         │
-akkio_attributes_latest                 └──► akkio_segments (OnSpot branch — pending)
+locality_attributes_latest                 └──► locality_segments (OnSpot branch — pending)
     │
-    ├──► identity_to_akkio_deduped
+    ├──► identity_to_locality_deduped
     │        │
-    │        ├──► akkio_segments (Inscape)
-    │        ├──► akkio_segments (Datonics via datonics_all_segments)
-    │        ├──► akkio_segments (OnSpot via ref('onspot_audience_data'))
+    │        ├──► locality_segments (Inscape)
+    │        ├──► locality_segments (Datonics via datonics_all_segments)
+    │        ├──► locality_segments (OnSpot via ref('onspot_audience_data'))
     │        └──► locality_campaign_exposure
     │
-    ├──► V_AGG_AKKIO_IND
-    ├──► V_AGG_AKKIO_HH
-    ├──► V_AGG_AKKIO_IND_CPG
-    ├──► V_AGG_AKKIO_IND_MEDIA
-    └──► V_AKKIO_ATTRIBUTES_LATEST (view)
+    ├──► V_AGG_LOCALITY_IND
+    ├──► V_AGG_LOCALITY_HH
+    ├──► V_AGG_LOCALITY_IND_CPG
+    ├──► V_AGG_LOCALITY_IND_MEDIA
+    └──► V_LOCALITY_ATTRIBUTES_LATEST (view)
 ```
 
 ### B. File Structure
@@ -884,17 +884,17 @@ models/
 │   └── int_datonics_segments_metadata.sql
 │
 └── locality/
-    ├── akkio_attributes_latest.sql      # Core household spine
-    ├── akkio_segments.sql               # Unified segments
-    ├── identity_to_akkio_deduped.sql    # Identity graph bridge
+    ├── locality_attributes_latest.sql      # Core household spine
+    ├── locality_segments.sql               # Unified segments
+    ├── identity_to_locality_deduped.sql    # Identity graph bridge
     ├── locality_campaign_exposure.sql   # Campaign impressions
     ├── onspot_audience_data.sql         # OnSpot from Delta Share (incremental)
     │
-    ├── v_agg_akkio_hh.sql               # Household analytics
-    ├── v_agg_akkio_ind.sql              # Individual analytics
-    ├── v_agg_akkio_ind_cpg.sql          # CPG analytics
-    ├── v_agg_akkio_ind_media.sql        # Media analytics
-    ├── v_akkio_attributes_latest.sql    # Backwards-compatible view
+    ├── v_agg_locality_hh.sql               # Household analytics
+    ├── v_agg_locality_ind.sql              # Individual analytics
+    ├── v_agg_locality_ind_cpg.sql          # CPG analytics
+    ├── v_agg_locality_ind_media.sql        # Media analytics
+    ├── v_locality_attributes_latest.sql    # Backwards-compatible view
     │
     └── datonics_segments/
         ├── datonics_all_segments.sql    # All category processing
