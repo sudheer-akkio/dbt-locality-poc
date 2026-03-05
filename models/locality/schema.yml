@@ -3,14 +3,14 @@ version: 2
 
 sources:
   - name: locality_poc_share_gold
-    database: locality-poc-share
+    database: locality-dev
     schema: gold
     tables:
       - name: freewheel_logs_gold
         description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
-    database: locality-poc-share
+    database: locality-dev
     schema: silver
     tables:
       - name: datonics_ids
@@ -177,6 +177,93 @@ models:
         description: "Experian income code A-J (A=lowest, J=$250K+) | :ml-encoding-nominal |<"
       - name: NET_WORTH_RANGE
         description: "Net worth range bucket (e.g. '2000000-4999999') | :ml-encoding-nominal |<"
+      - name: DBT_UPDATED_AT
+        description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
+
+  - name: v_akkio_attributes_latest
+    description: >
+      Shallow view over akkio_attributes_latest for Insights system compatibility.
+      Rows: 108M | Grain: AKKIO_ID | Materialization: View
+      | :short-name:audience_attributes :use_for_audience_gen |<
+    columns:
+      - name: AKKIO_ID
+        description: "Unique household identifier"
+      - name: AKKIO_HH_ID
+        description: "Household identifier (same as AKKIO_ID for household-level data)"
+      - name: LUID
+        description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
+      - name: PARTITION_DATE
+        description: "Current date when model was run | :akkio-context-ignore |<"
+      - name: GENDER
+        description: "Gender from ConsumerView2 (Person_RC_gndr_gndr_2) | :ml-encoding-nominal :audience_preview_data:yes: |<"
+      - name: AGE
+        description: "Age in years - midpoint of age range from ConsumerView2 | :audience_preview_data:yes:"
+      - name: AGE_BUCKET
+        description: "Age bucket: 1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+"
+      - name: ETHNICITY
+        description: "Ethnicity from ConsumerView2 (Person__RC_Ethnic_-_Group) | :ml-encoding-nominal |<"
+      - name: EDUCATION_LEVEL
+        description: "Education level from ConsumerView2 | :ml-encoding-nominal :audience_preview_data:yes: |<"
+      - name: MARITAL_STATUS
+        description: "Marital status from ConsumerView2 | :ml-encoding-nominal :audience_preview_data:yes: |<"
+      - name: STATE
+        description: "State abbreviation from ConsumerView2 (stat_abbr) | :ml-encoding-nominal |<"
+      - name: ZIP11
+        description: "ZIP+4 code (NULL - not available in ConsumerView2) | :ml-encoding-nominal |<"
+      - name: COUNTY_NAME
+        description: "County name (NULL)"
+      - name: OCCUPATION
+        description: "Occupation from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: OCCUPATION_TITLE
+        description: "Job title from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: HOME_OWNERSHIP_CODE
+        description: "Home ownership code (A=Homeowner, B=Renter)"
+      - name: HOME_OWNERSHIP
+        description: "Home ownership status (Owner/Renter/NULL) | :ml-encoding-nominal :audience_preview_data:yes: |<"
+      - name: INCOME_RANGE
+        description: "Income range bucket (e.g. '250000-499999') | :ml-encoding-nominal |<"
+      - name: INCOME
+        description: "Estimated household income in thousands (lower bound) | :audience_preview_data:yes:"
+      - name: INCOME_BUCKET
+        description: "Income bucket 1-10 from Experian A-J"
+      - name: NET_WORTH_RANGE
+        description: "Net worth range bucket (e.g. '2000000-4999999') | :ml-encoding-nominal |<"
+      - name: NET_WORTH
+        description: "Estimated net worth in dollars"
+      - name: NET_WORTH_BUCKET
+        description: "Net worth bucket mapped to Horizon format"
+      - name: HOME_VALUE_RANGE
+        description: "Estimated home value range from ConsumerView2 | :ml-encoding-nominal |<"
+      - name: NUM_PEOPLE_IN_HOUSEHOLD_GROUP
+        description: "Household size from ConsumerView2 (DU_size)"
+      - name: CHILD_AGE_GROUP
+        description: "Child age groups (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal |<"
+      - name: NUMBER_OF_CHILDREN
+        description: "Number of children (1, 2+) | :ml-encoding-nominal |<"
+      - name: PRESENCE_OF_CHILDREN
+        description: "Has children indicator (1=Yes, 0=No)"
+      - name: GENERAL_INTERESTS
+        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :akkio-ml-ignore |<"
+      - name: SPORTS_INTERESTS
+        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :akkio-ml-ignore |<"
+      - name: READING_INTERESTS
+        description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal |<"
+      - name: TRAVEL_INTERESTS
+        description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal |<"
+      - name: VEHICLE_MAKES
+        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :akkio-ml-ignore |<"
+      - name: VEHICLE_STYLES
+        description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal |<"
+      - name: VEHICLE_CLASS
+        description: "Vehicle class (comma-separated: Luxury Car, Sports Car, etc.) | :ml-encoding-nominal |<"
+      - name: FUEL_CODE
+        description: "Fuel type (comma-separated: Electric, Hybrid, Alt Fuel) | :ml-encoding-nominal |<"
+      - name: FINANCIAL_HEALTH_BUCKET
+        description: "Financial health score from ConsumerView2"
+      - name: CREDIT_CARD_INFO
+        description: "Credit card usage (comma-separated: Premium Card, Corporate Card, etc.) | :ml-encoding-nominal |<"
+      - name: INVESTMENT_TYPE
+        description: "Investment types (comma-separated: Active Investor, Brokerage Account, etc.) | :ml-encoding-nominal |<"
       - name: DBT_UPDATED_AT
         description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
 

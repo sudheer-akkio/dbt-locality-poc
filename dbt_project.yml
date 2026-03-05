@@ -6,7 +6,7 @@ name: 'locality_poc_databricks'
 version: '1.0.0'
 
 # This setting configures which "profile" dbt uses for this project.
-profile: 'locality_poc_databricks'
+profile: 'locality_prod'
 
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
@@ -52,7 +52,7 @@ models:
         - locality
         - locality_poc
         - monthly
-      +database: akkio
+      +database: locality_dev
       akkio_attributes_latest:
         +materialized: table
         +alias: AKKIO_ATTRIBUTES_LATEST
@@ -94,4 +94,4 @@ models:
           - "alter table {{ this }} cluster by (partition_date, akkio_hh_id)"
       v_akkio_attributes_latest:
         +materialized: view
-        +alias: V_AKKIO_ATTRIBUTES_LATEST 
+        +alias: V_AKKIO_ATTRIBUTES_LATEST
