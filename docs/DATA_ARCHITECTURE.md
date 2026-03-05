@@ -872,7 +872,7 @@ akkio_attributes_latest                 └──► akkio_segments (OnSpot bran
     ├──► V_AGG_AKKIO_HH
     ├──► V_AGG_AKKIO_IND_CPG
     ├──► V_AGG_AKKIO_IND_MEDIA
-    └──► V_AKKIO_ATTRIBUTES_LATEST (view)
+    └──► V_LOCALITY_ATTRIBUTES_LATEST (view)
 ```
 
 ### B. File Structure
@@ -894,7 +894,7 @@ models/
     ├── v_agg_akkio_ind.sql              # Individual analytics
     ├── v_agg_akkio_ind_cpg.sql          # CPG analytics
     ├── v_agg_akkio_ind_media.sql        # Media analytics
-    ├── v_akkio_attributes_latest.sql    # Backwards-compatible view
+    ├── v_locality_attributes_latest.sql    # Backwards-compatible view
     │
     └── datonics_segments/
         ├── datonics_all_segments.sql    # All category processing

@@ -92,6 +92,6 @@ models:
         +alias: V_AGG_AKKIO_HH
         +post_hook:
           - "alter table {{ this }} cluster by (partition_date, akkio_hh_id)"
-      v_akkio_attributes_latest:
+      v_locality_attributes_latest:
         +materialized: view
-        +alias: V_AKKIO_ATTRIBUTES_LATEST
+        +alias: V_LOCALITY_ATTRIBUTES_LATEST

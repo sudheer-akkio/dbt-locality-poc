@@ -1,7 +1,7 @@
 {{
     config(
         materialized='view',
-        alias='V_AKKIO_ATTRIBUTES_LATEST'
+        alias='V_LOCALITY_ATTRIBUTES_LATEST'
     )
 }}
 
