@@ -52,7 +52,8 @@ models:
         - locality
         - locality_poc
         - monthly
-      +database: locality_dev
+      # +database: locality_dev
+      +database: akkio
       locality_attributes_latest:
         +materialized: table
         +alias: LOCALITY_ATTRIBUTES_LATEST
