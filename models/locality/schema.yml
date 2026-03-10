@@ -2,14 +2,16 @@ version: 2
 
 sources:
   - name: locality_poc_share_gold
-    database: locality-dev
+    # database: locality-dev
+    database: locality-poc-share
     schema: gold
     tables:
       - name: freewheel_logs_gold
         description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
-    database: locality-dev
+    # database: locality-dev
+    database: locality-poc-share
     schema: silver
     tables:
       - name: datonics_ids
