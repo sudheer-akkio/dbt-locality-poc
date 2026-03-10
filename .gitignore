@@ -5,6 +5,9 @@ dbt_packages/
 logs/
 sandbox/
 
+# Environment variables
+.env
+
 # Virtual Environment
 venv/
 env/
@@ -20,9 +23,10 @@ __pycache__/
 .Python
 .pytest_cache/
 
-# IDE specific files
+# IDE and tool specific files
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 .DS_Store

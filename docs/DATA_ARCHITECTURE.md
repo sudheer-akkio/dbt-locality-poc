@@ -86,12 +86,12 @@ This document provides a comprehensive overview of the Locality data architectur
 
 ### 1.2 Core Design Principles
 
-| Principle                        | Implementation                                                                            |
-| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| Principle                        | Implementation                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Household-Centric**            | All data resolves to `LOCALITY_ID` (household identifier) as the primary key                 |
-| **Identity Resolution**          | Multi-device identity graph links IPs, MAIDs, IDFAs, CTVs to households                   |
-| **Hierarchical Segments**        | Datonics segments stored as L1-L5 columns for flexible querying                           |
-| **Incremental Processing**       | Campaign exposure uses incremental strategy for efficiency                                |
+| **Identity Resolution**          | Multi-device identity graph links IPs, MAIDs, IDFAs, CTVs to households                      |
+| **Hierarchical Segments**        | Datonics segments stored as L1-L5 columns for flexible querying                              |
+| **Incremental Processing**       | Campaign exposure uses incremental strategy for efficiency                                   |
 | **Materialized for Performance** | Critical join tables (identity_to_locality_deduped) are materialized to avoid repeated scans |
 
 ---
@@ -113,9 +113,13 @@ This document provides a comprehensive overview of the Locality data architectur
 
 ### 2.2 Source Schema Configuration
 
+Source catalog is configured via the `DBT_SOURCE_CATALOG` environment variable (defaults to `locality-poc-share` for staging). In prod, where tables are local to the customer's Databricks workspace, set this to the appropriate catalog name.
+
 ```yaml
 sources:
   - name: locality_poc_share_silver
+    database: "{{ env_var('DBT_SOURCE_CATALOG', 'locality-poc-share') }}"
+    schema: silver
     tables:
       - experian_consolidated_id_map  # Identity graph
       - experian_consumerview2        # Demographics
@@ -127,11 +131,13 @@ sources:
       - onspot                        # OnSpot audience (device_id, audience_name)
 
   - name: locality_poc_share_gold
+    database: "{{ env_var('DBT_SOURCE_CATALOG', 'locality-poc-share') }}"
+    schema: gold
     tables:
       - freewheel_logs_gold           # Ad impressions
 ```
 
-**Note:** OnSpot lives in the same Delta Share as other silver tables (`locality-poc-share.silver.onspot`). The project's copy is built by the dbt model `onspot_audience_data` in `akkio.locality_poc`, which ingests from this source incrementally.
+**Note:** OnSpot lives in the same source catalog as other silver tables. The project's copy is built by the dbt model `onspot_audience_data`, which ingests from this source incrementally.
 
 ---
 
@@ -279,7 +285,7 @@ CONCAT_WS(',',
 
 | Category          | Columns                                                                  | Description                |
 | ----------------- | ------------------------------------------------------------------------ | -------------------------- |
-| **Identity**      | LOCALITY_ID, LOCALITY_HH_ID, LUID                                              | Household identifiers      |
+| **Identity**      | LOCALITY_ID, LOCALITY_HH_ID, LUID                                        | Household identifiers      |
 | **Demographics**  | GENDER, AGE, AGE_BUCKET, ETHNICITY, EDUCATION_LEVEL, MARITAL_STATUS      | Individual characteristics |
 | **Geographic**    | STATE, ZIP11, COUNTY_NAME                                                | Location data              |
 | **Employment**    | OCCUPATION, OCCUPATION_TITLE                                             | Professional information   |
@@ -380,7 +386,7 @@ config:
 
 | Column                  | Description                          |
 | ----------------------- | ------------------------------------ |
-| `LOCALITY_ID`              | Matched household identifier         |
+| `LOCALITY_ID`           | Matched household identifier         |
 | `HAS_LOOPME_CONVERSION` | Boolean: Did this household convert? |
 | `LOOPME_CAMPAIGN_ID`    | LoopMe campaign ID (if converted)    |
 | `TRANSACTION_ID`        | Unique FreeWheel impression ID       |
@@ -517,7 +523,7 @@ SELECT * FROM datonics_segments
 
 | Column                | Type   | Description                                       |
 | --------------------- | ------ | ------------------------------------------------- |
-| `LOCALITY_ID`            | STRING | Household identifier                              |
+| `LOCALITY_ID`         | STRING | Household identifier                              |
 | `SEGMENT_ID`          | STRING | Unique segment identifier                         |
 | `SEGMENT_NAME`        | STRING | Human-readable segment name                       |
 | `SEGMENT_L1`          | STRING | Category (Datonics only)                          |
@@ -559,12 +565,12 @@ WHERE SEGMENT_L1 = 'Travel' AND SEGMENT_L2 = 'Luxury';
 
 The architecture produces four analytics-ready tables optimized for the Insights platform:
 
-| Table                   | Grain                   | Purpose                       | Key Attributes                     |
-| ----------------------- | ----------------------- | ----------------------------- | ---------------------------------- |
+| Table                      | Grain                      | Purpose                       | Key Attributes                     |
+| -------------------------- | -------------------------- | ----------------------------- | ---------------------------------- |
 | `V_AGG_LOCALITY_IND`       | Individual (LOCALITY_ID)   | Core demographics & interests | Gender, Age, Income, Interests     |
 | `V_AGG_LOCALITY_HH`        | Household (LOCALITY_HH_ID) | Household composition         | Children, Home Value, Ownership    |
-| `V_AGG_LOCALITY_IND_CPG`   | Individual              | Purchase behavior             | Categories, Spend Levels, Channels |
-| `V_AGG_LOCALITY_IND_MEDIA` | Individual              | Media consumption             | Streaming, Devices, Genres         |
+| `V_AGG_LOCALITY_IND_CPG`   | Individual                 | Purchase behavior             | Categories, Spend Levels, Channels |
+| `V_AGG_LOCALITY_IND_MEDIA` | Individual                 | Media consumption             | Streaming, Devices, Genres         |
 
 ### 7.2 Individual Aggregation (`V_AGG_LOCALITY_IND`)
 
@@ -716,11 +722,11 @@ LEFT JOIN experian_consumerview2 e_cv ON attr.LUID = e_cv.recd_luid
 
 | Model                            | Materialization | Reason                                         |
 | -------------------------------- | --------------- | ---------------------------------------------- |
-| `locality_attributes_latest`        | TABLE           | Core spine, accessed by all downstream models  |
-| `identity_to_locality_deduped`      | TABLE           | Critical join table, avoids 7.9B row re-scans  |
+| `locality_attributes_latest`     | TABLE           | Core spine, accessed by all downstream models  |
+| `identity_to_locality_deduped`   | TABLE           | Critical join table, avoids 7.9B row re-scans  |
 | `int_datonics_segments_metadata` | TABLE           | Small metadata table (1,191 rows)              |
 | `locality_campaign_exposure`     | INCREMENTAL     | 2.9B rows, only process new data               |
-| `locality_segments`                 | INCREMENTAL     | Large table with append-only pattern           |
+| `locality_segments`              | INCREMENTAL     | Large table with append-only pattern           |
 | `V_AGG_*` tables                 | TABLE           | Analytics outputs, need fast query performance |
 
 ### 8.2 Clustering Strategy
@@ -743,14 +749,14 @@ ALTER TABLE V_AGG_LOCALITY_IND CLUSTER BY (PARTITION_DATE, LOCALITY_ID);
 
 ### 8.3 Scale Metrics
 
-| Model                        | Rows  | Build Time  | Notes                                   |
-| ---------------------------- | ----- | ----------- | --------------------------------------- |
-| `locality_attributes_latest`    | 108M  | ~1 min      | Full refresh                            |
-| `identity_to_locality_deduped`  | 1.76B | 5-10 min    | Full refresh                            |
-| `locality_campaign_exposure` | 2.9B  | Incremental | Daily append                            |
-| `locality_segments` (Inscape)   | ~410M | Variable    | IP-only matching                        |
-| `locality_segments` (Datonics)  | ~60B  | Hours       | 609B source, deduplicated               |
-| `locality_segments` (OnSpot)    | TBD   | TBD         | ~20GB source, ~65% match rate (pending) |
+| Model                          | Rows  | Build Time  | Notes                                   |
+| ------------------------------ | ----- | ----------- | --------------------------------------- |
+| `locality_attributes_latest`   | 108M  | ~1 min      | Full refresh                            |
+| `identity_to_locality_deduped` | 1.76B | 5-10 min    | Full refresh                            |
+| `locality_campaign_exposure`   | 2.9B  | Incremental | Daily append                            |
+| `locality_segments` (Inscape)  | ~410M | Variable    | IP-only matching                        |
+| `locality_segments` (Datonics) | ~60B  | Hours       | 609B source, deduplicated               |
+| `locality_segments` (OnSpot)   | TBD   | TBD         | ~20GB source, ~65% match rate (pending) |
 
 ---
 
@@ -956,7 +962,23 @@ models/
 
 ---
 
-*Document Version: 1.1*  
-*Last Updated: February 2026*  
-*dbt Project: locality_poc_databricks*  
-*Changes: Added OnSpot audience data as pending segment source*
+### D. Environment Configuration
+
+The project uses a single `locality` profile with two dbt targets:
+
+| Setting               | Staging                                     | Prod                                     |
+| --------------------- | ------------------------------------------- | ---------------------------------------- |
+| Output catalog.schema | `akkio.locality_poc`                        | `locality_dev.akkio`                     |
+| Source catalog        | `locality-poc-share` (Delta Share, default) | Local catalog (set `DBT_SOURCE_CATALOG`) |
+| Auth method           | Token                                       | OAuth (service principal)                |
+
+Switch environments with `dbt run --target staging` or `dbt run --target prod`. See `.env.example` for the full list of environment variables.
+
+For Databricks Jobs, set environment variables in the job configuration and pass `--target` as a dbt CLI argument. No branch switching is required.
+
+---
+
+*Document Version: 1.2*
+*Last Updated: March 2026*
+*dbt Project: locality_poc_databricks*
+*Changes: Externalized environment configuration via dbt targets and env vars*
