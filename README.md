@@ -74,7 +74,7 @@
 | `DBT_DATABRICKS_TOKEN`         | Staging      | Personal access token                                                           |
 | `DBT_DATABRICKS_CLIENT_ID`     | Prod         | OAuth service principal client ID                                               |
 | `DBT_DATABRICKS_CLIENT_SECRET` | Prod         | OAuth service principal client secret                                           |
-| `DBT_SOURCE_CATALOG`           | Prod         | Catalog containing source tables (defaults to `locality-poc-share` for staging) |
+| `DBT_SOURCE_CATALOG`           | Both         | Catalog containing source tables (`locality-poc-share` for staging)             |
 
 ### Running the Pipeline
 

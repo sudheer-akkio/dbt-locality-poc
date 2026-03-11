@@ -113,12 +113,12 @@ This document provides a comprehensive overview of the Locality data architectur
 
 ### 2.2 Source Schema Configuration
 
-Source catalog is configured via the `DBT_SOURCE_CATALOG` environment variable (defaults to `locality-poc-share` for staging). In prod, where tables are local to the customer's Databricks workspace, set this to the appropriate catalog name.
+Source catalog is configured via the `DBT_SOURCE_CATALOG` environment variable (required — no default). Set to `locality-poc-share` for staging or the appropriate local catalog for prod.
 
 ```yaml
 sources:
   - name: locality_poc_share_silver
-    database: "{{ env_var('DBT_SOURCE_CATALOG', 'locality-poc-share') }}"
+    database: "{{ env_var('DBT_SOURCE_CATALOG') }}"
     schema: silver
     tables:
       - experian_consolidated_id_map  # Identity graph
@@ -131,7 +131,7 @@ sources:
       - onspot                        # OnSpot audience (device_id, audience_name)
 
   - name: locality_poc_share_gold
-    database: "{{ env_var('DBT_SOURCE_CATALOG', 'locality-poc-share') }}"
+    database: "{{ env_var('DBT_SOURCE_CATALOG') }}"
     schema: gold
     tables:
       - freewheel_logs_gold           # Ad impressions
@@ -969,7 +969,7 @@ The project uses a single `locality` profile with two dbt targets:
 | Setting               | Staging                                     | Prod                                     |
 | --------------------- | ------------------------------------------- | ---------------------------------------- |
 | Output catalog.schema | `akkio.locality_poc`                        | `locality_dev.akkio`                     |
-| Source catalog        | `locality-poc-share` (Delta Share, default) | Local catalog (set `DBT_SOURCE_CATALOG`) |
+| Source catalog        | `locality-poc-share` (Delta Share)          | Local catalog (set `DBT_SOURCE_CATALOG`) |
 | Auth method           | Token                                       | OAuth (service principal)                |
 
 Switch environments with `dbt run --target staging` or `dbt run --target prod`. See `.env.example` for the full list of environment variables.

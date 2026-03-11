@@ -2,14 +2,14 @@ version: 2
 
 sources:
   - name: locality_poc_share_gold
-    database: "{{ env_var('DBT_SOURCE_CATALOG', 'locality-poc-share') }}"
+    database: "{{ env_var('DBT_SOURCE_CATALOG') }}"
     schema: gold
     tables:
       - name: freewheel_logs_gold
         description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
-    database: "{{ env_var('DBT_SOURCE_CATALOG', 'locality-poc-share') }}"
+    database: "{{ env_var('DBT_SOURCE_CATALOG') }}"
     schema: silver
     tables:
       - name: datonics_ids
