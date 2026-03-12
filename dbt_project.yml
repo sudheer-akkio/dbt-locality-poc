@@ -29,7 +29,6 @@ vars:
   env: staging
   id_col_name: "{% if var('env') == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
   hh_id_col_name: "{% if var('env') == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
-  source_catalog: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality-prod-share{% endif %}"
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models
