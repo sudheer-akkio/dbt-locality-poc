@@ -94,18 +94,18 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
     columns:
       - name: PARTITION_DATE
         description: "Current date when model was run | :akkio-context-ignore |<"
         tests:
           - not_null
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - unique
           - not_null
-      - name: "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier (same as {{ var('id_col_name') }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
@@ -185,9 +185,9 @@ models:
       Rows: 108M | Grain: {{ var('id_col_name') }} | Materialization: View
       | :short-name:audience_attributes :use_for_audience_gen |<
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
-      - name: "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier (same as {{ var('id_col_name') }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
@@ -276,13 +276,13 @@ models:
           combination_of_columns:
             - IDENTITY
             - ID_TYPE
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
     columns:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
         description: "Type of identity | :lower |<"
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Associated household ID"
 
   - name: locality_campaign_exposure
@@ -294,15 +294,15 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - TRANSACTION_ID
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Household identifier"
         tests:
           - not_null
           - relationships:
               to: ref('locality_attributes_latest')
-              field: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+              field: "{{ var('id_col_name') }}"
       - name: LOOPME_CAMPAIGN_ID
         description: "LoopMe campaign identifier (if conversion occurred)"
       - name: HAS_LOOPME_CONVERSION
@@ -361,13 +361,13 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier (same as {{ var('id_col_name') }})"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -441,9 +441,9 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+            - "{{ var('hh_id_col_name') }}"
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier"
         tests:
           - not_null
@@ -481,13 +481,13 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -523,13 +523,13 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{% if target.name == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -616,11 +616,11 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+            - "{{ var('id_col_name') }}"
             - SEGMENT_ID
             - SEGMENT_SOURCE
     columns:
-      - name: "{% if target.name == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
+      - name: "{{ var('id_col_name') }}"
         description: "Household identifier"
         tests:
           - not_null
