@@ -2,7 +2,7 @@
     materialized='table',
     alias='V_AGG_LOCALITY_IND_CPG',
     post_hook=[
-        "alter table {{this}} cluster by (PARTITION_DATE, LOCALITY_ID)",
+        "alter table {{this}} cluster by (PARTITION_DATE, {{ locality_id_col() }})",
     ]
 )}}
 
@@ -11,15 +11,15 @@
 
     Purpose: Purchase behavior and spending patterns for analytics.
     Source: experian_consumerview2 (joined via locality_attributes_latest.LUID)
-    Grain: One row per LOCALITY_ID (household)
+    Grain: One row per {{ locality_id_col() }} (household)
 
     Contains: Categories purchased, purchase frequency, spending levels
 */
 
 SELECT
     -- Primary Keys
-    attr.LOCALITY_ID,
-    attr.LOCALITY_HH_ID,
+    attr.{{ locality_id_col() }},
+    attr.{{ locality_hh_id_col() }},
 
     -- Weight (1.0 for equal weighting)
     1.0 AS WEIGHT,

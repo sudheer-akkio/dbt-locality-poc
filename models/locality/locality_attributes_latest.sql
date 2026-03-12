@@ -2,7 +2,7 @@
     config(
         materialized='table',
         post_hook=[
-            "alter table {{this}} cluster by (LOCALITY_ID)",
+            "alter table {{this}} cluster by ({{ locality_id_col() }})",
         ]
     )
 }}
@@ -21,8 +21,8 @@ WITH one_luid_per_household AS (
 
 SELECT
     -- Primary Keys
-    olh.hh_id AS LOCALITY_ID,
-    olh.hh_id AS LOCALITY_HH_ID,
+    olh.hh_id AS {{ locality_id_col() }},
+    olh.hh_id AS {{ locality_hh_id_col() }},
     olh.luid AS LUID,
 
     -- Temporal
@@ -172,28 +172,23 @@ SELECT
         ELSE NULL
     END AS HOME_OWNERSHIP,
 
-    -- Income range code (A-J)
-    e_cv.`RC_Est_Household_Income_V6` AS INCOME_RANGE,
+    -- Income range code (A-G) — fin_fla_income replaced RC_Est_Household_Income_V6
+    -- Old column had 10 buckets (A-J), new column has 7 (A-G)
+    -- Bucket boundaries are provisional — need Experian data dictionary for real mapping
+    e_cv.fin_fla_income AS INCOME_RANGE,
 
-    -- INCOME: Convert Experian letter codes to numeric midpoints
-    -- A=$1K-25K, B=$25K-50K, C=$50K-75K, D=$75K-100K, E=$100K-125K,
-    -- F=$125K-150K, G=$150K-175K, H=$175K-200K, I=$200K-250K, J=$250K+
-    CASE e_cv.`RC_Est_Household_Income_V6`
-        WHEN 'A' THEN 12500
-        WHEN 'B' THEN 37500
-        WHEN 'C' THEN 62500
-        WHEN 'D' THEN 87500
-        WHEN 'E' THEN 112500
-        WHEN 'F' THEN 137500
-        WHEN 'G' THEN 162500
-        WHEN 'H' THEN 187500
-        WHEN 'I' THEN 225000
-        WHEN 'J' THEN 300000
+    CASE e_cv.fin_fla_income
+        WHEN 'A' THEN 15000
+        WHEN 'B' THEN 35000
+        WHEN 'C' THEN 55000
+        WHEN 'D' THEN 80000
+        WHEN 'E' THEN 115000
+        WHEN 'F' THEN 165000
+        WHEN 'G' THEN 250000
         ELSE NULL
     END AS INCOME,
 
-    -- INCOME_BUCKET: Experian A-J mapped to buckets 1-10 (1=lowest, 10=highest)
-    CASE e_cv.`RC_Est_Household_Income_V6`
+    CASE e_cv.fin_fla_income
         WHEN 'A' THEN 1
         WHEN 'B' THEN 2
         WHEN 'C' THEN 3
@@ -201,9 +196,6 @@ SELECT
         WHEN 'E' THEN 5
         WHEN 'F' THEN 6
         WHEN 'G' THEN 7
-        WHEN 'H' THEN 8
-        WHEN 'I' THEN 9
-        WHEN 'J' THEN 10
         ELSE NULL
     END AS INCOME_BUCKET,
 

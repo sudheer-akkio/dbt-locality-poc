@@ -3,8 +3,10 @@ name = "dbt-locality-poc"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11, <=3.13"
 dependencies = [
     "dbt-core>=1.11.4",
     "dbt-databricks>=1.10.9",
+    "databricks-sql-connector",
+    "databricks-sdk>=0.47.0",
 ]
