@@ -27,8 +27,8 @@ flags:
 
 vars:
   env: staging
-  id_col_name: "{% if var('env') == 'staging' %}AKKIO_ID{% else %}LOCALITY_ID{% endif %}"
-  hh_id_col_name: "{% if var('env') == 'staging' %}AKKIO_HH_ID{% else %}LOCALITY_HH_ID{% endif %}"
+  id_col_name: AKKIO_ID
+  hh_id_col_name: AKKIO_HH_ID
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models
