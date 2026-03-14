@@ -14,9 +14,9 @@
 SELECT DISTINCT
     e_map.identity AS IDENTITY,
     e_map.id_type AS ID_TYPE,
-    attr.LOCALITY_ID,
-    attr.LOCALITY_HH_ID
+    attr.{{ locality_id_col() }},
+    attr.{{ locality_hh_id_col() }}
 FROM {{ source('locality_poc_share_silver', 'experian_consolidated_id_map') }} e_map
 INNER JOIN {{ ref('locality_attributes_latest') }} attr
-    ON e_map.hh_id = attr.LOCALITY_ID
+    ON e_map.hh_id = attr.{{ locality_id_col() }}
 WHERE e_map.id_type IN ('ip', 'ctv', 'idfa', 'aaid')

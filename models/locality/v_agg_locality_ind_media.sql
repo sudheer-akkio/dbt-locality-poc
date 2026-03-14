@@ -2,7 +2,7 @@
     materialized='table',
     alias='V_AGG_LOCALITY_IND_MEDIA',
     post_hook=[
-        "alter table {{this}} cluster by (PARTITION_DATE, LOCALITY_ID)",
+        "alter table {{this}} cluster by (PARTITION_DATE, {{ locality_id_col() }})",
     ]
 )}}
 
@@ -11,15 +11,15 @@
 
     Purpose: Media and entertainment preferences for analytics.
     Source: experian_consumerview2 (joined via locality_attributes_latest.LUID)
-    Grain: One row per LOCALITY_ID (household)
+    Grain: One row per {{ locality_id_col() }} (household)
 
     Contains: Streaming services, TV networks, devices, genres watched
 */
 
 SELECT
     -- Primary Keys
-    attr.LOCALITY_ID,
-    attr.LOCALITY_HH_ID,
+    attr.{{ locality_id_col() }},
+    attr.{{ locality_hh_id_col() }},
 
     -- Weight (1.0 for equal weighting)
     1.0 AS WEIGHT,
@@ -99,7 +99,7 @@ SELECT
         CASE WHEN e_cv.`RC_TVMovies_College_Basketball_` = 'A' THEN 'College Basketball' END,
         CASE WHEN e_cv.`RC_TVMovies_College_Football` = 'A' THEN 'College Football' END,
         CASE WHEN e_cv.`RC_TVMovies_Female_TV_Shows` = 'A' THEN 'Female TV Shows' END,
-        CASE WHEN e_cv.`RC:_TVMovies:_Guy_Shows_on_TV_V1` = 'A' THEN 'Guy TV Shows' END
+        CASE WHEN e_cv.rc__tvmovies__guy_shows_on_tv_v1 = 'A' THEN 'Guy TV Shows' END
     ) AS TITLES_WATCHED,
 
     -- ============================================================

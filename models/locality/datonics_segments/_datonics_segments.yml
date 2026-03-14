@@ -31,31 +31,11 @@ models:
       - name: child_segment
         description: Child segment ID (for parent_child records)
 
-  - name: datonics_all_segments
-    description: |
-      All datonics segment memberships mapped to LOCALITY_IDs across all 29 categories.
-      Dynamically processes all categories found in the metadata table.
-      Applies leaf-filtering to remove redundant parent segments (e.g., if an ID has
-      'Automotive > Luxury > Owners', we don't store separate rows for 'Automotive > Luxury'
-      and 'Automotive').
-    columns:
-      - name: LOCALITY_ID
-        description: Locality unique identifier
-      - name: SEGMENT_ID
-        description: Datonics segment ID
-      - name: SEGMENT_NAME
-        description: Comma-separated readable segment name (e.g., 'Automotive, Luxury, Owners')
-      - name: SEGMENT_L1
-        description: Top-level category (e.g., 'Automotive')
-      - name: SEGMENT_L2
-        description: Second-level segment (e.g., 'Luxury')
-      - name: SEGMENT_L3
-        description: Third-level segment (e.g., 'Owners')
-      - name: SEGMENT_L4
-        description: Fourth-level segment
-      - name: SEGMENT_L5
-        description: Fifth-level segment
-      - name: SEGMENT_DESCRIPTION
-        description: Segment description from datonics
-      - name: SEGMENT_SOURCE
-        description: Always 'datonics'
+  - name: datonics_segments_ip
+    description: "Datonics segments for IP id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+  - name: datonics_segments_aaid
+    description: "Datonics segments for AAID id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+  - name: datonics_segments_idfa
+    description: "Datonics segments for IDFA id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+  - name: datonics_segments_ctv
+    description: "Datonics segments for CTV id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
