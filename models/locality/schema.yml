@@ -2,14 +2,14 @@ version: 2
 
 sources:
   - name: locality_poc_share_gold
-    database: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality-prod-share{% endif %}"
+    database: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality-poc-share{% endif %}"
     schema: gold
     tables:
       - name: freewheel_logs_gold
         description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
-    database: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality-prod-share{% endif %}"
+    database: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality-poc-share{% endif %}"
     schema: silver
     tables:
       - name: datonics_ids
