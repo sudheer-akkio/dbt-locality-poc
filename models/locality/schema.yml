@@ -2,14 +2,14 @@ version: 2
 
 sources:
   - name: locality_poc_share_gold
-    database: "{{ env_var('DBT_SOURCE_CATALOG') }}"
+    database: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality_dev{% endif %}"
     schema: gold
     tables:
       - name: freewheel_logs_gold
         description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
-    database: "{{ env_var('DBT_SOURCE_CATALOG') }}"
+    database: "{% if var('env') == 'staging' %}locality-poc-share{% else %}locality_dev{% endif %}"
     schema: silver
     tables:
       - name: datonics_ids
@@ -89,24 +89,24 @@ models:
   - name: locality_attributes_latest
     description: >
       Household spine with decoded Experian behavioral attributes and spending patterns.
-      Rows: 108M | Grain: LOCALITY_ID | Refresh: Full (~1 min) | Materialization: Table
+      Rows: 108M | Grain: {{ var('id_col_name') }} | Refresh: Full (~1 min) | Materialization: Table
       | :short-name:audience_attributes :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
     columns:
       - name: PARTITION_DATE
         description: "Current date when model was run | :akkio-context-ignore |<"
         tests:
           - not_null
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - unique
           - not_null
-      - name: LOCALITY_HH_ID
-        description: "Household identifier (same as LOCALITY_ID for household-level data)"
+      - name: "{{ var('hh_id_col_name') }}"
+        description: "Household identifier (same as {{ var('id_col_name') }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: GENDER
@@ -166,14 +166,14 @@ models:
       - name: HOME_OWNERSHIP
         description: "Home ownership status (Owner/Renter/NULL) | :ml-encoding-nominal |<"
       - name: INCOME
-        description: "Estimated household income in dollars (midpoint of Experian A-J range)"
+        description: "Estimated household income in dollars (midpoint of Experian A-G range)"
         tests:
           - dbt_utils.accepted_range:
               min_value: 0
-              max_value: 5000
+              max_value: 300000
               severity: warn
       - name: INCOME_RANGE
-        description: "Experian income code A-J (A=lowest, J=$250K+) | :ml-encoding-nominal |<"
+        description: "Experian income code A-G (fin_fla_income) | :ml-encoding-nominal |<"
       - name: NET_WORTH_RANGE
         description: "Net worth range bucket (e.g. '2000000-4999999') | :ml-encoding-nominal |<"
       - name: DBT_UPDATED_AT
@@ -182,13 +182,13 @@ models:
   - name: v_locality_attributes_latest
     description: >
       Shallow view over locality_attributes_latest for Insights system compatibility.
-      Rows: 108M | Grain: LOCALITY_ID | Materialization: View
+      Rows: 108M | Grain: {{ var('id_col_name') }} | Materialization: View
       | :short-name:audience_attributes :use_for_audience_gen |<
     columns:
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
-      - name: LOCALITY_HH_ID
-        description: "Household identifier (same as LOCALITY_ID for household-level data)"
+      - name: "{{ var('hh_id_col_name') }}"
+        description: "Household identifier (same as {{ var('id_col_name') }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: PARTITION_DATE
@@ -220,11 +220,11 @@ models:
       - name: HOME_OWNERSHIP
         description: "Home ownership status (Owner/Renter/NULL) | :ml-encoding-nominal :audience_preview_data:yes: |<"
       - name: INCOME_RANGE
-        description: "Income range bucket (e.g. '250000-499999') | :ml-encoding-nominal |<"
+        description: "Experian income code A-G (fin_fla_income) | :ml-encoding-nominal |<"
       - name: INCOME
-        description: "Estimated household income in thousands (lower bound) | :audience_preview_data:yes:"
+        description: "Estimated household income in dollars (midpoint of Experian A-G range) | :audience_preview_data:yes:"
       - name: INCOME_BUCKET
-        description: "Income bucket 1-10 from Experian A-J"
+        description: "Income bucket 1-7 from Experian A-G"
       - name: NET_WORTH_RANGE
         description: "Net worth range bucket (e.g. '2000000-4999999') | :ml-encoding-nominal |<"
       - name: NET_WORTH
@@ -276,33 +276,33 @@ models:
           combination_of_columns:
             - IDENTITY
             - ID_TYPE
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
     columns:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
         description: "Type of identity | :lower |<"
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Associated household ID"
 
   - name: locality_campaign_exposure
     description: >
       Campaign impressions from FreeWheel enriched with LoopMe conversion data.
-      Rows: 2.9B | Grain: (TRANSACTION_ID, LOCALITY_ID) | Partition: EVENT_DATE (monthly)
+      Rows: 2.9B | Grain: (TRANSACTION_ID, {{ var('id_col_name') }}) | Partition: EVENT_DATE (monthly)
       | :short-name:campaign_exposure |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - TRANSACTION_ID
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Household identifier"
         tests:
           - not_null
           - relationships:
               to: ref('locality_attributes_latest')
-              field: LOCALITY_ID
+              field: "{{ var('id_col_name') }}"
       - name: LOOPME_CAMPAIGN_ID
         description: "LoopMe campaign identifier (if conversion occurred)"
       - name: HAS_LOOPME_CONVERSION
@@ -356,19 +356,19 @@ models:
     description: >
       Individual-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2.
-      Rows: 108M | Grain: LOCALITY_ID | Materialization: Table
+      Rows: 108M | Grain: {{ var('id_col_name') }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: LOCALITY_HH_ID
-        description: "Household identifier (same as LOCALITY_ID)"
+      - name: "{{ var('hh_id_col_name') }}"
+        description: "Household identifier (same as {{ var('id_col_name') }})"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
       - name: GENDER
@@ -392,9 +392,9 @@ models:
       - name: HOMEOWNER
         description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
       - name: INCOME
-        description: "Estimated household income in dollars (midpoint of Experian A-J range)"
+        description: "Estimated household income in dollars (midpoint of Experian A-G range)"
       - name: INCOME_BUCKET
-        description: "Income bucket 1-10 from Experian A-J (1=lowest, 10=$250K+)"
+        description: "Income bucket 1-7 from Experian A-G (1=lowest, 10=$250K+)"
       - name: NET_WORTH_BUCKET
         description: "Net worth range bucket"
       - name: GENERAL_INTERESTS
@@ -436,14 +436,14 @@ models:
     description: >
       Household-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2 including children and household size.
-      Rows: 108M | Grain: LOCALITY_HH_ID | Materialization: Table
+      Rows: 108M | Grain: {{ var('hh_id_col_name') }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - LOCALITY_HH_ID
+            - "{{ var('hh_id_col_name') }}"
     columns:
-      - name: LOCALITY_HH_ID
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier"
         tests:
           - not_null
@@ -454,9 +454,9 @@ models:
       - name: HOMEOWNER
         description: "Home ownership status (1=Owner, 0=Renter, NULL=Unknown)"
       - name: INCOME
-        description: "Estimated household income in dollars (midpoint of Experian A-J range)"
+        description: "Estimated household income in dollars (midpoint of Experian A-G range)"
       - name: INCOME_BUCKET
-        description: "Income bucket 1-10 from Experian A-J (1=lowest, 10=$250K+)"
+        description: "Income bucket 1-7 from Experian A-G (1=lowest, 10=$250K+)"
       - name: CHILD_AGE_GROUP
         description: "Child age groups in household (comma-separated: 0-3, 4-6, Tween, Teen)"
       - name: NUMBER_OF_CHILDREN
@@ -476,18 +476,18 @@ models:
     description: >
       Individual-level media consumption table for analytics.
       Contains streaming services, TV networks, devices, and genres watched.
-      Source: experian_consumerview2 | Grain: LOCALITY_ID | Materialization: Table
+      Source: experian_consumerview2 | Grain: {{ var('id_col_name') }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: LOCALITY_HH_ID
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -518,18 +518,18 @@ models:
     description: >
       Individual-level CPG (Consumer Packaged Goods) purchase table for analytics.
       Contains purchase categories, spending levels, and shopping behavior.
-      Source: experian_consumerview2 | Grain: LOCALITY_ID | Materialization: Table
+      Source: experian_consumerview2 | Grain: {{ var('id_col_name') }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
     columns:
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: LOCALITY_HH_ID
+      - name: "{{ var('hh_id_col_name') }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -568,45 +568,69 @@ models:
         tests:
           - not_null
 
+  - name: segment_lookup
+    description: >
+      Small dimension table of all distinct segments across Inscape, Datonics, and OnSpot.
+      Use for segment discovery via string matching, then join resulting SEGMENT_IDs
+      to locality_segments for household lists.
+      Grain: (SEGMENT_ID, SEGMENT_SOURCE).
+      | :short-name:segment_lookup :use_for_audience_gen |<
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - SEGMENT_ID
+            - SEGMENT_SOURCE
+    columns:
+      - name: SEGMENT_ID
+        description: "Unique segment identifier"
+        tests:
+          - not_null
+      - name: SEGMENT_NAME
+        description: "Normalized segment name for string matching"
+      - name: SEGMENT_L1
+        description: "Datonics hierarchy level 1 (category). NULL for Inscape and OnSpot."
+      - name: SEGMENT_L2
+        description: "Datonics hierarchy level 2. NULL for Inscape and OnSpot."
+      - name: SEGMENT_L3
+        description: "Datonics hierarchy level 3. NULL for Inscape and OnSpot."
+      - name: SEGMENT_L4
+        description: "Datonics hierarchy level 4. NULL for Inscape and OnSpot."
+      - name: SEGMENT_L5
+        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape and OnSpot."
+      - name: SEGMENT_DESCRIPTION
+        description: "Segment description (Datonics only)."
+      - name: SEGMENT_SOURCE
+        description: "Source of the segment (inscape, datonics, or onspot)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['inscape', 'datonics', 'onspot']
+
   - name: locality_segments
     description: >
-      Household segment assignments from Inscape, Datonics, and OnSpot.
-      Inscape: TV viewing and ad exposure patterns (~410M rows).
-      Datonics: Behavioral and demographic segments from 609B source, deduplicated (~60B rows).
-      Grain: (LOCALITY_ID, SEGMENT_ID, SEGMENT_SOURCE).
-      AGGREGATION: GROUP BY only SEGMENT_ID - all other segment columns are derived from it.
+      Household presence in segments from Inscape, Datonics, and OnSpot.
+      Fact table only — metadata lives in segment_lookup.
+      Join: locality_segments JOIN segment_lookup USING (SEGMENT_ID, SEGMENT_SOURCE).
+      Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE).
       | :short-name:audience_segments :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - LOCALITY_ID
+            - "{{ var('id_col_name') }}"
             - SEGMENT_ID
             - SEGMENT_SOURCE
     columns:
-      - name: LOCALITY_ID
+      - name: "{{ var('id_col_name') }}"
         description: "Household identifier"
         tests:
           - not_null
       - name: SEGMENT_ID
-        description: "Unique segment identifier (~1,200 distinct values). GROUP BY this column only when aggregating."
+        description: "Segment identifier. Join to segment_lookup for name, hierarchy, and description."
         tests:
           - not_null
-      - name: SEGMENT_NAME
-        description: "Normalized segment name. Derived from SEGMENT_ID - do not GROUP BY | :lower :space-to-hyphen |<"
-      - name: SEGMENT_L1
-        description: "Datonics hierarchy level 1 (category). NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
-      - name: SEGMENT_L2
-        description: "Datonics hierarchy level 2. NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
-      - name: SEGMENT_L3
-        description: "Datonics hierarchy level 3. NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
-      - name: SEGMENT_L4
-        description: "Datonics hierarchy level 4. NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
-      - name: SEGMENT_L5
-        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape and OnSpot. Derived from SEGMENT_ID - do not GROUP BY."
-      - name: SEGMENT_DESCRIPTION
-        description: "Segment description (Datonics only). Derived from SEGMENT_ID - do not GROUP BY."
       - name: SEGMENT_SOURCE
-        description: "Source of the segment (inscape, datonics, or onspot). Derived from SEGMENT_ID - do not GROUP BY | :lower |<"
+        description: "Source of the segment (inscape, datonics, or onspot)"
         tests:
+          - not_null
           - accepted_values:
               values: ['inscape', 'datonics', 'onspot']

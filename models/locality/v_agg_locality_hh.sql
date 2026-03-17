@@ -2,7 +2,7 @@
     materialized='table',
     alias='V_AGG_LOCALITY_HH',
     post_hook=[
-        "alter table {{this}} cluster by (PARTITION_DATE, LOCALITY_HH_ID)",
+        "alter table {{this}} cluster by (PARTITION_DATE, {{ locality_hh_id_col() }})",
     ]
 )}}
 
@@ -11,15 +11,15 @@
 
     Purpose: Household-level aggregation of demographic attributes for analytics (Insights compatibility).
     Source: locality_attributes_latest (now with real ConsumerView2 data)
-    Grain: One row per LOCALITY_HH_ID (household)
+    Grain: One row per {{ locality_hh_id_col() }} (household)
 
-    Note: Since LOCALITY_HH_ID = LOCALITY_ID in the source, this is currently 1:1,
+    Note: Since {{ locality_hh_id_col() }} = {{ locality_id_col() }} in the source, this is currently 1:1,
     but structured for future scenarios where multiple individuals may share a household.
 */
 
 SELECT
     -- Primary Key
-    attr.LOCALITY_HH_ID,
+    attr.{{ locality_hh_id_col() }},
 
     -- Weight (1.0 for equal weighting - FLOAT type required for insights)
     1.0 AS WEIGHT,
