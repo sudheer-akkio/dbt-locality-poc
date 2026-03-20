@@ -12,10 +12,11 @@ sources:
     database: "{% if var('env', 'staging') == 'staging' %}locality-poc-share{% else %}locality_dev{% endif %}"
     schema: silver
     tables:
-      - name: datonics_ids
+      - name: datonics_consolidated_id_map
         description: >
-          This table consolidates all of the Datonics segment definitions
-          across all of the various identifier types. (609B rows)
+          Consolidated Datonics segment-to-identity mappings across all
+          identifier types. Replaces the legacy datonics_ids table.
+          Use `identity` column (not `id`) and filter on active_status=True.
       - name: datonics_segments
         description: >
           This table provides information about the segments defined in the
