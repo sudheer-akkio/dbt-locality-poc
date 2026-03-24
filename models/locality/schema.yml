@@ -171,7 +171,7 @@ models:
         tests:
           - dbt_utils.accepted_range:
               min_value: 0
-              max_value: 300000
+              max_value: 200000
               severity: warn
       - name: INCOME_RANGE
         description: "Experian income code A-G (fin_fla_income) | :ml-encoding-nominal |<"
