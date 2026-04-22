@@ -55,6 +55,20 @@ onspot AS (
         CAST(NULL AS STRING) AS SEGMENT_DESCRIPTION,
         'onspot' AS SEGMENT_SOURCE
     FROM {{ ref('onspot_audience_data') }} o
+),
+
+experian_mosaic AS (
+    SELECT
+        mosaic_code AS SEGMENT_ID,
+        mosaic_name AS SEGMENT_NAME,
+        CAST(NULL AS STRING) AS SEGMENT_L1,
+        CAST(NULL AS STRING) AS SEGMENT_L2,
+        CAST(NULL AS STRING) AS SEGMENT_L3,
+        CAST(NULL AS STRING) AS SEGMENT_L4,
+        CAST(NULL AS STRING) AS SEGMENT_L5,
+        mosaic_name AS SEGMENT_DESCRIPTION,
+        'experian_mosaic' AS SEGMENT_SOURCE
+    FROM {{ ref('experian_mosaic_hh_decode') }}
 )
 
 SELECT * FROM datonics
@@ -62,3 +76,5 @@ UNION ALL
 SELECT * FROM inscape
 UNION ALL
 SELECT * FROM onspot
+UNION ALL
+SELECT * FROM experian_mosaic
