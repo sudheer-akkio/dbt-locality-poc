@@ -27,8 +27,6 @@ flags:
 
 vars:
   env: staging
-  id_col_name: AKKIO_ID
-  hh_id_col_name: AKKIO_HH_ID
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models

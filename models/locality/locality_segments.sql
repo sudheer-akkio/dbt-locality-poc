@@ -41,3 +41,5 @@ UNION ALL
 SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_ctv') }}
 UNION ALL
 SELECT * FROM onspot_segments
+UNION ALL
+SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('experian_mosaic_segments') }}

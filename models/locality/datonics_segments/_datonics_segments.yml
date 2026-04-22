@@ -32,10 +32,10 @@ models:
         description: Child segment ID (for parent_child records)
 
   - name: datonics_segments_ip
-    description: "Datonics segments for IP id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+    description: "Datonics segments for IP id_type. Grain: ({{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}, SEGMENT_ID, SEGMENT_SOURCE)."
   - name: datonics_segments_aaid
-    description: "Datonics segments for AAID id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+    description: "Datonics segments for AAID id_type. Grain: ({{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}, SEGMENT_ID, SEGMENT_SOURCE)."
   - name: datonics_segments_idfa
-    description: "Datonics segments for IDFA id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+    description: "Datonics segments for IDFA id_type. Grain: ({{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}, SEGMENT_ID, SEGMENT_SOURCE)."
   - name: datonics_segments_ctv
-    description: "Datonics segments for CTV id_type. Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE)."
+    description: "Datonics segments for CTV id_type. Grain: ({{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}, SEGMENT_ID, SEGMENT_SOURCE)."

@@ -90,24 +90,24 @@ models:
   - name: locality_attributes_latest
     description: >
       Household spine with decoded Experian behavioral attributes and spending patterns.
-      Rows: 108M | Grain: {{ var('id_col_name') }} | Refresh: Full (~1 min) | Materialization: Table
+      Rows: 108M | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Refresh: Full (~1 min) | Materialization: Table
       | :short-name:audience_attributes :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
       - name: PARTITION_DATE
         description: "Current date when model was run | :akkio-context-ignore |<"
         tests:
           - not_null
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Unique household identifier"
         tests:
           - unique
           - not_null
-      - name: "{{ var('hh_id_col_name') }}"
-        description: "Household identifier (same as {{ var('id_col_name') }} for household-level data)"
+      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+        description: "Household identifier (same as {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: GENDER
@@ -183,13 +183,13 @@ models:
   - name: v_locality_attributes_latest
     description: >
       Shallow view over locality_attributes_latest for Insights system compatibility.
-      Rows: 108M | Grain: {{ var('id_col_name') }} | Materialization: View
+      Rows: 108M | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: View
       | :short-name:audience_attributes :use_for_audience_gen |<
     columns:
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Unique household identifier"
-      - name: "{{ var('hh_id_col_name') }}"
-        description: "Household identifier (same as {{ var('id_col_name') }} for household-level data)"
+      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+        description: "Household identifier (same as {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: PARTITION_DATE
@@ -277,33 +277,33 @@ models:
           combination_of_columns:
             - IDENTITY
             - ID_TYPE
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
         description: "Type of identity | :lower |<"
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Associated household ID"
 
   - name: locality_campaign_exposure
     description: >
       Campaign impressions from FreeWheel enriched with LoopMe conversion data.
-      Rows: 2.9B | Grain: (TRANSACTION_ID, {{ var('id_col_name') }}) | Partition: EVENT_DATE (monthly)
+      Rows: 2.9B | Grain: (TRANSACTION_ID, {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}) | Partition: EVENT_DATE (monthly)
       | :short-name:campaign_exposure |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - TRANSACTION_ID
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Household identifier"
         tests:
           - not_null
           - relationships:
               to: ref('locality_attributes_latest')
-              field: "{{ var('id_col_name') }}"
+              field: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
       - name: LOOPME_CAMPAIGN_ID
         description: "LoopMe campaign identifier (if conversion occurred)"
       - name: HAS_LOOPME_CONVERSION
@@ -357,19 +357,19 @@ models:
     description: >
       Individual-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2.
-      Rows: 108M | Grain: {{ var('id_col_name') }} | Materialization: Table
+      Rows: 108M | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{{ var('hh_id_col_name') }}"
-        description: "Household identifier (same as {{ var('id_col_name') }})"
+      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+        description: "Household identifier (same as {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }})"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
       - name: GENDER
@@ -437,14 +437,14 @@ models:
     description: >
       Household-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2 including children and household size.
-      Rows: 108M | Grain: {{ var('hh_id_col_name') }} | Materialization: Table
+      Rows: 108M | Grain: {{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ var('hh_id_col_name') }}"
+            - "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
     columns:
-      - name: "{{ var('hh_id_col_name') }}"
+      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
         description: "Household identifier"
         tests:
           - not_null
@@ -477,18 +477,18 @@ models:
     description: >
       Individual-level media consumption table for analytics.
       Contains streaming services, TV networks, devices, and genres watched.
-      Source: experian_consumerview2 | Grain: {{ var('id_col_name') }} | Materialization: Table
+      Source: experian_consumerview2 | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{{ var('hh_id_col_name') }}"
+      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -519,18 +519,18 @@ models:
     description: >
       Individual-level CPG (Consumer Packaged Goods) purchase table for analytics.
       Contains purchase categories, spending levels, and shopping behavior.
-      Source: experian_consumerview2 | Grain: {{ var('id_col_name') }} | Materialization: Table
+      Source: experian_consumerview2 | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{{ var('hh_id_col_name') }}"
+      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -571,7 +571,7 @@ models:
 
   - name: segment_lookup
     description: >
-      Small dimension table of all distinct segments across Inscape, Datonics, and OnSpot.
+      Small dimension table of all distinct segments across Inscape, Datonics, OnSpot, and Experian Mosaic.
       Use for segment discovery via string matching, then join resulting SEGMENT_IDs
       to locality_segments for household lists.
       Grain: (SEGMENT_ID, SEGMENT_SOURCE).
@@ -583,45 +583,45 @@ models:
             - SEGMENT_SOURCE
     columns:
       - name: SEGMENT_ID
-        description: "Unique segment identifier"
+        description: "Unique segment identifier. For experian_mosaic this is the 3-char Mosaic code (e.g. O51)."
         tests:
           - not_null
       - name: SEGMENT_NAME
-        description: "Normalized segment name for string matching"
+        description: "Normalized segment name for string matching. For experian_mosaic this is the Mosaic persona name (e.g. 'Digitally Savvy')."
       - name: SEGMENT_L1
-        description: "Datonics hierarchy level 1 (category). NULL for Inscape and OnSpot."
+        description: "Datonics hierarchy level 1 (category). NULL for Inscape, OnSpot, and Experian Mosaic."
       - name: SEGMENT_L2
-        description: "Datonics hierarchy level 2. NULL for Inscape and OnSpot."
+        description: "Datonics hierarchy level 2. NULL for Inscape, OnSpot, and Experian Mosaic."
       - name: SEGMENT_L3
-        description: "Datonics hierarchy level 3. NULL for Inscape and OnSpot."
+        description: "Datonics hierarchy level 3. NULL for Inscape, OnSpot, and Experian Mosaic."
       - name: SEGMENT_L4
-        description: "Datonics hierarchy level 4. NULL for Inscape and OnSpot."
+        description: "Datonics hierarchy level 4. NULL for Inscape, OnSpot, and Experian Mosaic."
       - name: SEGMENT_L5
-        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape and OnSpot."
+        description: "Datonics hierarchy level 5 (deepest). NULL for Inscape, OnSpot, and Experian Mosaic."
       - name: SEGMENT_DESCRIPTION
-        description: "Segment description (Datonics only)."
+        description: "Segment description. Populated for Datonics and Experian Mosaic (Mosaic persona name); NULL for Inscape and OnSpot."
       - name: SEGMENT_SOURCE
-        description: "Source of the segment (inscape, datonics, or onspot)"
+        description: "Source of the segment (inscape, datonics, onspot, or experian_mosaic)"
         tests:
           - not_null
           - accepted_values:
-              values: ['inscape', 'datonics', 'onspot']
+              values: ['inscape', 'datonics', 'onspot', 'experian_mosaic']
 
   - name: locality_segments
     description: >
-      Household presence in segments from Inscape, Datonics, and OnSpot.
+      Household presence in segments from Inscape, Datonics, OnSpot, and Experian Mosaic.
       Fact table only — metadata lives in segment_lookup.
       Join: locality_segments JOIN segment_lookup USING (SEGMENT_ID, SEGMENT_SOURCE).
-      Grain: ({{ var('id_col_name') }}, SEGMENT_ID, SEGMENT_SOURCE).
+      Grain: ({{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}, SEGMENT_ID, SEGMENT_SOURCE).
       | :short-name:audience_segments :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - "{{ var('id_col_name') }}"
+            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
             - SEGMENT_ID
             - SEGMENT_SOURCE
     columns:
-      - name: "{{ var('id_col_name') }}"
+      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
         description: "Household identifier"
         tests:
           - not_null
@@ -630,8 +630,8 @@ models:
         tests:
           - not_null
       - name: SEGMENT_SOURCE
-        description: "Source of the segment (inscape, datonics, or onspot)"
+        description: "Source of the segment (inscape, datonics, onspot, or experian_mosaic)"
         tests:
           - not_null
           - accepted_values:
-              values: ['inscape', 'datonics', 'onspot']
+              values: ['inscape', 'datonics', 'onspot', 'experian_mosaic']
