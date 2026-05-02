@@ -40,11 +40,7 @@ SELECT
         ELSE NULL
     END AS GENDER,
 
-    -- AGE: Use Age_Range_* boolean flags, return midpoint of range
-    -- IMPORTANT: Ordered from most specific to least specific ranges to handle
-    -- Experian's overlapping age range flags (34% of records have multiple flags set)
-    -- See: Age_Range_1924 (19-24) overlaps with Age_Range_2124 (21-24)
-    -- See: Age_Range_75 (75+) overlaps with Age_Range_7579, 8084, etc.
+    -- AGE: 5-year ranges first, then 10-year fallbacks, then broad catch-alls
     CASE
         WHEN e_cv.Age_Range_9599 = 'Y' THEN 97
         WHEN e_cv.Age_Range_9094 = 'Y' THEN 92
@@ -60,15 +56,27 @@ SELECT
         WHEN e_cv.Age_Range_3539 = 'Y' THEN 37
         WHEN e_cv.Age_Range_3034 = 'Y' THEN 32
         WHEN e_cv.Age_Range_2529 = 'Y' THEN 27
-        WHEN e_cv.Age_Range_1820 = 'Y' THEN 19
         WHEN e_cv.Age_Range_2124 = 'Y' THEN 23
         WHEN e_cv.Age_Range_1924 = 'Y' THEN 22
+        WHEN e_cv.Age_Range_1820 = 'Y' THEN 19
+        -- 10-year fallbacks (fills 60-64 gap and other misses)
+        WHEN e_cv.age_range_55_64 = 'Y' THEN 60
+        WHEN e_cv.age_range_45_54 = 'Y' THEN 50
+        WHEN e_cv.age_range_35_44 = 'Y' THEN 40
+        WHEN e_cv.Age_Range_2534 = 'Y' THEN 30
+        WHEN e_cv.age_range_18_24 = 'Y' THEN 21
+        -- Broad catch-alls
+        WHEN e_cv.age_range_65plus = 'Y' THEN 75
         WHEN e_cv.Age_Range_75 = 'Y' THEN 80
+        WHEN e_cv.age_range_35_54 = 'Y' THEN 45
+        WHEN e_cv.age_range_25_49 = 'Y' THEN 37
+        WHEN e_cv.age_range_18_49 = 'Y' THEN 34
+        WHEN e_cv.age_range_18_39 = 'Y' THEN 29
+        WHEN e_cv.age_range_18_34 = 'Y' THEN 26
         ELSE NULL
     END AS AGE,
 
-    -- AGE_BUCKET: Map to Horizon buckets (1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+)
-    -- IMPORTANT: Same ordering logic as AGE - specific ranges before broad catch-alls
+    -- AGE_BUCKET: 1=18-24, 2=25-34, 3=35-44, 4=45-54, 5=55-64, 6=65-74, 7=75+
     CASE
         WHEN e_cv.Age_Range_9599 = 'Y' THEN 7
         WHEN e_cv.Age_Range_9094 = 'Y' THEN 7
@@ -84,10 +92,23 @@ SELECT
         WHEN e_cv.Age_Range_3539 = 'Y' THEN 3
         WHEN e_cv.Age_Range_3034 = 'Y' THEN 2
         WHEN e_cv.Age_Range_2529 = 'Y' THEN 2
-        WHEN e_cv.Age_Range_1820 = 'Y' THEN 1
         WHEN e_cv.Age_Range_2124 = 'Y' THEN 1
         WHEN e_cv.Age_Range_1924 = 'Y' THEN 1
+        WHEN e_cv.Age_Range_1820 = 'Y' THEN 1
+        -- 10-year fallbacks
+        WHEN e_cv.age_range_55_64 = 'Y' THEN 5
+        WHEN e_cv.age_range_45_54 = 'Y' THEN 4
+        WHEN e_cv.age_range_35_44 = 'Y' THEN 3
+        WHEN e_cv.Age_Range_2534 = 'Y' THEN 2
+        WHEN e_cv.age_range_18_24 = 'Y' THEN 1
+        -- Broad catch-alls
+        WHEN e_cv.age_range_65plus = 'Y' THEN 7
         WHEN e_cv.Age_Range_75 = 'Y' THEN 7
+        WHEN e_cv.age_range_35_54 = 'Y' THEN 4
+        WHEN e_cv.age_range_25_49 = 'Y' THEN 3
+        WHEN e_cv.age_range_18_49 = 'Y' THEN 3
+        WHEN e_cv.age_range_18_39 = 'Y' THEN 2
+        WHEN e_cv.age_range_18_34 = 'Y' THEN 2
         ELSE NULL
     END AS AGE_BUCKET,
 
@@ -172,19 +193,17 @@ SELECT
         ELSE NULL
     END AS HOME_OWNERSHIP,
 
-    -- Income range code (A-G) — fin_fla_income replaced RC_Est_Household_Income_V6
-    -- Old column had 10 buckets (A-J), new column has 7 (A-G)
-    -- Bucket boundaries are provisional — need Experian data dictionary for real mapping
+    -- Income: fin_fla_income (A-G) from Experian data dictionary March 2026
     e_cv.fin_fla_income AS INCOME_RANGE,
 
     CASE e_cv.fin_fla_income
-        WHEN 'A' THEN 15000
-        WHEN 'B' THEN 35000
-        WHEN 'C' THEN 55000
-        WHEN 'D' THEN 80000
-        WHEN 'E' THEN 115000
-        WHEN 'F' THEN 165000
-        WHEN 'G' THEN 250000
+        WHEN 'A' THEN 13000   -- $1K-$25K
+        WHEN 'B' THEN 30000   -- $25K-$35K
+        WHEN 'C' THEN 42500   -- $35K-$50K
+        WHEN 'D' THEN 62500   -- $50K-$75K
+        WHEN 'E' THEN 87500   -- $75K-$100K
+        WHEN 'F' THEN 125000  -- $100K-$150K
+        WHEN 'G' THEN 175000  -- $150K+
         ELSE NULL
     END AS INCOME,
 
