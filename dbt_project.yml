@@ -68,7 +68,6 @@ models:
         +materialized: table
         +alias: SEGMENT_LOOKUP
       locality_segments:
-        +materialized: incremental
         +alias: LOCALITY_SEGMENTS
         +post_hook:
           - "alter table {{ this }} cluster by (segment_id)"
