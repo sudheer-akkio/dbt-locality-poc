@@ -1,6 +1,10 @@
 {{
     config(
-        materialized='table'
+        materialized='incremental',
+        incremental_strategy='merge',
+        unique_key=[locality_id_col(), 'SEGMENT_ID'],
+        merge_update_columns=[],
+        on_schema_change='ignore'
     )
 }}
 
