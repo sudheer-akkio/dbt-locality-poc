@@ -123,7 +123,7 @@ models:
       - name: MARITAL_STATUS
         description: "Marital status from ConsumerView2 | :ml-encoding-nominal |<"
       - name: STATE
-        description: "State abbreviation from ConsumerView2 (stat_abbr) | :ml-encoding-nominal |<"
+        description: "State abbreviation from ConsumerView2 (stat_abbr) | :ml-encoding-nominal :gen-unique-values-embeddings |<"
       - name: ZIP11
         description: "ZIP+4 code (NULL - not available in ConsumerView2) | :ml-encoding-nominal |<"
       - name: OCCUPATION
@@ -131,7 +131,7 @@ models:
       - name: OCCUPATION_TITLE
         description: "Job title from ConsumerView2 | :ml-encoding-nominal |<"
       - name: CHILD_AGE_GROUP
-        description: "Child age groups (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal |<"
+        description: "Child age groups (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal :csv :gen-unique-values-embeddings |<"
       - name: NUMBER_OF_CHILDREN
         description: "Number of children (1, 2+) | :ml-encoding-nominal |<"
       - name: PRESENCE_OF_CHILDREN
@@ -141,27 +141,27 @@ models:
       - name: HOME_VALUE_RANGE
         description: "Estimated home value range from ConsumerView2 | :ml-encoding-nominal |<"
       - name: GENERAL_INTERESTS
-        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :akkio-ml-ignore |<"
+        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :akkio-ml-ignore :csv |<"
       - name: SPORTS_INTERESTS
-        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :akkio-ml-ignore |<"
+        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :akkio-ml-ignore :csv |<"
       - name: READING_INTERESTS
-        description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal |<"
+        description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal :csv |<"
       - name: TRAVEL_INTERESTS
-        description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal |<"
+        description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal :csv |<"
       - name: VEHICLE_MAKES
-        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :akkio-ml-ignore |<"
+        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :akkio-ml-ignore :csv |<"
       - name: VEHICLE_STYLES
-        description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal |<"
+        description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal :csv |<"
       - name: VEHICLE_CLASS
-        description: "Vehicle class (comma-separated: Luxury Car, Sports Car, etc.) | :ml-encoding-nominal |<"
+        description: "Vehicle class (comma-separated: Luxury Car, Sports Car, etc.) | :ml-encoding-nominal :csv |<"
       - name: FUEL_CODE
-        description: "Fuel type (comma-separated: Electric, Hybrid, Alt Fuel) | :ml-encoding-nominal |<"
+        description: "Fuel type (comma-separated: Electric, Hybrid, Alt Fuel) | :ml-encoding-nominal :csv |<"
       - name: FINANCIAL_HEALTH_BUCKET
         description: "Financial health score from ConsumerView2"
       - name: CREDIT_CARD_INFO
-        description: "Credit card usage (comma-separated: Premium Card, Corporate Card, etc.) | :ml-encoding-nominal |<"
+        description: "Credit card usage (comma-separated: Premium Card, Corporate Card, etc.) | :ml-encoding-nominal :csv |<"
       - name: INVESTMENT_TYPE
-        description: "Investment types (comma-separated: Active Investor, Brokerage Account, etc.) | :ml-encoding-nominal |<"
+        description: "Investment types (comma-separated: Active Investor, Brokerage Account, etc.) | :ml-encoding-nominal :csv :gen-unique-values-embeddings |<"
       - name: HOUSING_TYPE
         description: "Housing type segment (apartment renter types, homeowner types) | :ml-encoding-nominal |<"
       - name: HOME_OWNERSHIP
@@ -207,7 +207,7 @@ models:
       - name: MARITAL_STATUS
         description: "Marital status from ConsumerView2 | :ml-encoding-nominal :audience_preview_data:yes: |<"
       - name: STATE
-        description: "State abbreviation from ConsumerView2 (stat_abbr) | :ml-encoding-nominal |<"
+        description: "State abbreviation from ConsumerView2 (stat_abbr) | :ml-encoding-nominal :gen-unique-values-embeddings |<"
       - name: ZIP11
         description: "ZIP+4 code (NULL - not available in ConsumerView2) | :ml-encoding-nominal |<"
       - name: COUNTY_NAME
@@ -237,33 +237,33 @@ models:
       - name: NUM_PEOPLE_IN_HOUSEHOLD_GROUP
         description: "Household size from ConsumerView2 (DU_size)"
       - name: CHILD_AGE_GROUP
-        description: "Child age groups (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal |<"
+        description: "Child age groups (comma-separated: 0-3, 4-6, Tween, Teen) | :ml-encoding-nominal :csv :gen-unique-values-embeddings |<"
       - name: NUMBER_OF_CHILDREN
         description: "Number of children (1, 2+) | :ml-encoding-nominal |<"
       - name: PRESENCE_OF_CHILDREN
         description: "Has children indicator (1=Yes, 0=No)"
       - name: GENERAL_INTERESTS
-        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :akkio-ml-ignore |<"
+        description: "General interests (comma-separated: Arts & Crafts, Reading, Fitness, etc.) | :akkio-ml-ignore :csv |<"
       - name: SPORTS_INTERESTS
-        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :akkio-ml-ignore |<"
+        description: "Sports interests (comma-separated: NFL, NBA, Golf, etc.) | :akkio-ml-ignore :csv |<"
       - name: READING_INTERESTS
-        description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal |<"
+        description: "Reading interests (comma-separated: Books, E-Books, Audio Books) | :ml-encoding-nominal :csv |<"
       - name: TRAVEL_INTERESTS
-        description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal |<"
+        description: "Travel interests (comma-separated: Business Travel, Cruises, etc.) | :ml-encoding-nominal :csv |<"
       - name: VEHICLE_MAKES
-        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :akkio-ml-ignore |<"
+        description: "Vehicle makes owned (comma-separated: Ford, Toyota, Honda, etc.) | :akkio-ml-ignore :csv |<"
       - name: VEHICLE_STYLES
-        description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal |<"
+        description: "Vehicle styles (comma-separated: Car, SUV, Truck, etc.) | :ml-encoding-nominal :csv |<"
       - name: VEHICLE_CLASS
-        description: "Vehicle class (comma-separated: Luxury Car, Sports Car, etc.) | :ml-encoding-nominal |<"
+        description: "Vehicle class (comma-separated: Luxury Car, Sports Car, etc.) | :ml-encoding-nominal :csv |<"
       - name: FUEL_CODE
-        description: "Fuel type (comma-separated: Electric, Hybrid, Alt Fuel) | :ml-encoding-nominal |<"
+        description: "Fuel type (comma-separated: Electric, Hybrid, Alt Fuel) | :ml-encoding-nominal :csv |<"
       - name: FINANCIAL_HEALTH_BUCKET
         description: "Financial health score from ConsumerView2"
       - name: CREDIT_CARD_INFO
-        description: "Credit card usage (comma-separated: Premium Card, Corporate Card, etc.) | :ml-encoding-nominal |<"
+        description: "Credit card usage (comma-separated: Premium Card, Corporate Card, etc.) | :ml-encoding-nominal :csv |<"
       - name: INVESTMENT_TYPE
-        description: "Investment types (comma-separated: Active Investor, Brokerage Account, etc.) | :ml-encoding-nominal |<"
+        description: "Investment types (comma-separated: Active Investor, Brokerage Account, etc.) | :ml-encoding-nominal :csv :gen-unique-values-embeddings |<"
       - name: DBT_UPDATED_AT
         description: "Timestamp when record was processed by dbt | :akkio-ml-ignore |<"
 
@@ -321,9 +321,23 @@ models:
       - name: LOCALITY_CAMPAIGN_ID
         description: "Locality campaign identifier | :ui-name:Campaign ID |<"
       - name: LOCALITY_ADVERTISER
-        description: "Locality advertiser name"
+        description: "Locality advertiser name | :all-unique-values |<"
+      - name: LOCALITY_AGENCY
+        description: "Locality agency name | :all-unique-values |<"
+      - name: ADVERTISER_CATEGORY
+        description: "Advertiser category from FreeWheel placement mapping | :all-unique-values :gen-unique-values-embeddings |<"
       - name: LOCALITY_CAMPAIGN
         description: "Locality campaign name"
+      - name: LOCALITY_PRODUCT
+        description: "Locality product line | :gen-unique-values-embeddings |<"
+      - name: PLATFORM_GROUP
+        description: "Platform group (e.g. CTV, Mobile) | :gen-unique-values-embeddings |<"
+      - name: STANDARD_DEVICE_TYPE_ID
+        description: "Standard device type identifier | :gen-unique-values-embeddings |<"
+      - name: VISITOR_STATE_PROVINCE
+        description: "Viewer state/province | :gen-unique-values-embeddings |<"
+      - name: MATCHED_INVENTORY_PACKAGE
+        description: "Matched inventory package | :all-unique-values |<"
       - name: IP_ADDRESS
         description: "IP address of the viewer"
       - name: DEVICE_ID
@@ -589,13 +603,13 @@ models:
       - name: SEGMENT_NAME
         description: "Normalized segment name for string matching. For experian_mosaic this is the Mosaic persona name (e.g. 'Digitally Savvy')."
       - name: SEGMENT_L1
-        description: "Datonics hierarchy level 1 (category). NULL for Inscape, OnSpot, and Experian Mosaic."
+        description: "Datonics hierarchy level 1 (category). NULL for Inscape, OnSpot, and Experian Mosaic. | :gen-unique-values-embeddings |<"
       - name: SEGMENT_L2
-        description: "Datonics hierarchy level 2. NULL for Inscape, OnSpot, and Experian Mosaic."
+        description: "Datonics hierarchy level 2. NULL for Inscape, OnSpot, and Experian Mosaic. | :all-unique-values |<"
       - name: SEGMENT_L3
-        description: "Datonics hierarchy level 3. NULL for Inscape, OnSpot, and Experian Mosaic."
+        description: "Datonics hierarchy level 3. NULL for Inscape, OnSpot, and Experian Mosaic. | :all-unique-values |<"
       - name: SEGMENT_L4
-        description: "Datonics hierarchy level 4. NULL for Inscape, OnSpot, and Experian Mosaic."
+        description: "Datonics hierarchy level 4. NULL for Inscape, OnSpot, and Experian Mosaic. | :all-unique-values |<"
       - name: SEGMENT_L5
         description: "Datonics hierarchy level 5 (deepest). NULL for Inscape, OnSpot, and Experian Mosaic."
       - name: SEGMENT_DESCRIPTION
