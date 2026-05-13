@@ -28,17 +28,28 @@ onspot_segments AS (
     FROM (SELECT * FROM {{ ref('onspot_audience_data') }}) o
     INNER JOIN (SELECT * FROM {{ ref('identity_to_locality_deduped') }}) ita
         ON o.device_id = ita.IDENTITY
+),
+
+datonics_segments AS (
+    -- DISTINCT to collapse rows produced by multiple id_types resolving to the
+    -- same (locality_id, segment_id) — common for households with several
+    -- identity records (ip + ctv + maid). Without this, locality_segments
+    -- violates its (locality_id, segment_id, segment_source) grain.
+    SELECT DISTINCT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE
+    FROM (
+        SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_ip') }}
+        UNION ALL
+        SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_aaid') }}
+        UNION ALL
+        SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_idfa') }}
+        UNION ALL
+        SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_ctv') }}
+    )
 )
 
 SELECT * FROM inscape_segments
 UNION ALL
-SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_ip') }}
-UNION ALL
-SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_aaid') }}
-UNION ALL
-SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_idfa') }}
-UNION ALL
-SELECT {{ locality_id_col() }}, SEGMENT_ID, SEGMENT_SOURCE FROM {{ ref('datonics_segments_ctv') }}
+SELECT * FROM datonics_segments
 UNION ALL
 SELECT * FROM onspot_segments
 UNION ALL

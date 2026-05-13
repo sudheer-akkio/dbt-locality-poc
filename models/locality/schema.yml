@@ -2,14 +2,14 @@ version: 2
 
 sources:
   - name: locality_poc_share_gold
-    database: "{% if var('env', 'staging') == 'staging' %}locality-poc-share{% else %}locality_dev{% endif %}"
+    database: locality_dev
     schema: gold
     tables:
       - name: freewheel_logs_gold
         description: Freewheel logs gold table (8.26B rows)
 
   - name: locality_poc_share_silver
-    database: "{% if var('env', 'staging') == 'staging' %}locality-poc-share{% else %}locality_dev{% endif %}"
+    database: locality_dev
     schema: silver
     tables:
       - name: datonics_consolidated_id_map
@@ -90,24 +90,24 @@ models:
   - name: locality_attributes_latest
     description: >
       Household spine with decoded Experian behavioral attributes and spending patterns.
-      Rows: 108M | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Refresh: Full (~1 min) | Materialization: Table
+      Rows: 108M | Grain: {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} | Refresh: Full (~1 min) | Materialization: Table
       | :short-name:audience_attributes :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+            - "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
     columns:
       - name: PARTITION_DATE
         description: "Current date when model was run | :akkio-context-ignore |<"
         tests:
           - not_null
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Unique household identifier"
         tests:
           - unique
           - not_null
-      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
-        description: "Household identifier (same as {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} for household-level data)"
+      - name: "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
+        description: "Household identifier (same as {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: GENDER
@@ -183,13 +183,13 @@ models:
   - name: v_locality_attributes_latest
     description: >
       Shallow view over locality_attributes_latest for Insights system compatibility.
-      Rows: 108M | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: View
+      Rows: 108M | Grain: {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} | Materialization: View
       | :short-name:audience_attributes :use_for_audience_gen |<
     columns:
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Unique household identifier"
-      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
-        description: "Household identifier (same as {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} for household-level data)"
+      - name: "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
+        description: "Household identifier (same as {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} for household-level data)"
       - name: LUID
         description: "Linked user ID from Experian (one per household via MIN) | :akkio-ml-ignore |<"
       - name: PARTITION_DATE
@@ -277,33 +277,30 @@ models:
           combination_of_columns:
             - IDENTITY
             - ID_TYPE
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+            - "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
     columns:
       - name: IDENTITY
         description: "The identity value (IP, MAID, CTV ID, etc)"
       - name: ID_TYPE
         description: "Type of identity | :lower |<"
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Associated household ID"
 
   - name: locality_campaign_exposure
     description: >
       Campaign impressions from FreeWheel enriched with LoopMe conversion data.
-      Rows: 2.9B | Grain: (TRANSACTION_ID, {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}) | Partition: EVENT_DATE (monthly)
+      Rows: 2.9B | Grain: TRANSACTION_ID | Partition: EVENT_DATE (monthly)
       | :short-name:campaign_exposure |<
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - TRANSACTION_ID
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
     columns:
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Household identifier"
         tests:
           - not_null
           - relationships:
               to: ref('locality_attributes_latest')
-              field: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+              field: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
+              config:
+                tags: ['expensive']
       - name: LOOPME_CAMPAIGN_ID
         description: "LoopMe campaign identifier (if conversion occurred)"
       - name: HAS_LOOPME_CONVERSION
@@ -313,6 +310,9 @@ models:
       - name: TRANSACTION_ID
         description: "Unique FreeWheel transaction identifier"
         tests:
+          - unique:
+              config:
+                tags: ['expensive']
           - not_null
       - name: EVENT_DATE
         description: "Date of the ad exposure | :ui-name:Exposure Date |<"
@@ -371,19 +371,19 @@ models:
     description: >
       Individual-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2.
-      Rows: 108M | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: Table
+      Rows: 108M | Grain: {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+            - "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
     columns:
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
-        description: "Household identifier (same as {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }})"
+      - name: "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
+        description: "Household identifier (same as {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }})"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
       - name: GENDER
@@ -451,14 +451,14 @@ models:
     description: >
       Household-level aggregation table for analytics platform compatibility (Insights).
       Now with real demographic data from ConsumerView2 including children and household size.
-      Rows: 108M | Grain: {{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }} | Materialization: Table
+      Rows: 108M | Grain: {{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+            - "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
     columns:
-      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+      - name: "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
         description: "Household identifier"
         tests:
           - not_null
@@ -491,18 +491,18 @@ models:
     description: >
       Individual-level media consumption table for analytics.
       Contains streaming services, TV networks, devices, and genres watched.
-      Source: experian_consumerview2 | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: Table
+      Source: experian_consumerview2 | Grain: {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+            - "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
     columns:
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+      - name: "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -533,18 +533,18 @@ models:
     description: >
       Individual-level CPG (Consumer Packaged Goods) purchase table for analytics.
       Contains purchase categories, spending levels, and shopping behavior.
-      Source: experian_consumerview2 | Grain: {{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }} | Materialization: Table
+      Source: experian_consumerview2 | Grain: {{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }} | Materialization: Table
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - PARTITION_DATE
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+            - "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
     columns:
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Unique household identifier"
         tests:
           - not_null
-      - name: "{{ 'LOCALITY_HH_ID' if var('env','staging') != 'staging' else 'AKKIO_HH_ID' }}"
+      - name: "{{ 'AKKIO_HH_ID' if var('env','staging') == 'poc' else 'LOCALITY_HH_ID' }}"
         description: "Household identifier"
       - name: WEIGHT
         description: "Weight value (1.0 for equal weighting)"
@@ -626,16 +626,18 @@ models:
       Household presence in segments from Inscape, Datonics, OnSpot, and Experian Mosaic.
       Fact table only — metadata lives in segment_lookup.
       Join: locality_segments JOIN segment_lookup USING (SEGMENT_ID, SEGMENT_SOURCE).
-      Grain: ({{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}, SEGMENT_ID, SEGMENT_SOURCE).
+      Grain: ({{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}, SEGMENT_ID, SEGMENT_SOURCE).
       | :short-name:audience_segments :use_for_audience_gen |<
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
-            - "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+            - "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
             - SEGMENT_ID
             - SEGMENT_SOURCE
+          config:
+            tags: ['expensive']
     columns:
-      - name: "{{ 'LOCALITY_ID' if var('env','staging') != 'staging' else 'AKKIO_ID' }}"
+      - name: "{{ 'AKKIO_ID' if var('env','staging') == 'poc' else 'LOCALITY_ID' }}"
         description: "Household identifier"
         tests:
           - not_null

@@ -67,41 +67,48 @@ freewheel_with_households AS (
 ),
 
 loopme_conversions AS (
+    -- Dedup globally across both branches: ROW_NUMBER() must be applied AFTER
+    -- the UNION ALL, otherwise a (locality_id, locality_campaign_id) can survive
+    -- twice (once per branch) when distinct loopme rows happen to resolve to it.
     SELECT
         {{ locality_id_col() }},
         locality_campaign_id,
         loopme_campaign_id
     FROM (
-        -- Device/MAID match (preferred — device-level identity)
         SELECT
-            ita.{{ locality_id_col() }},
-            l.locality_campaign_id,
-            l.loopme_campaign_id,
+            {{ locality_id_col() }},
+            locality_campaign_id,
+            loopme_campaign_id,
             ROW_NUMBER() OVER (
-                PARTITION BY ita.{{ locality_id_col() }}, l.locality_campaign_id
-                ORDER BY l.loopme_campaign_id
+                PARTITION BY {{ locality_id_col() }}, locality_campaign_id
+                ORDER BY match_priority, loopme_campaign_id
             ) AS rn
-        FROM {{ source('locality_poc_share_silver', 'loopme') }} l
-        INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
-            ON l.maid = ita.IDENTITY AND ita.ID_TYPE != 'ip'
+        FROM (
+            -- Device/MAID match (preferred — device-level identity)
+            SELECT
+                ita.{{ locality_id_col() }},
+                l.locality_campaign_id,
+                l.loopme_campaign_id,
+                1 AS match_priority
+            FROM {{ source('locality_poc_share_silver', 'loopme') }} l
+            INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
+                ON l.maid = ita.IDENTITY AND ita.ID_TYPE != 'ip'
 
-        UNION ALL
+            UNION ALL
 
-        -- IP fallback — only for loopme rows with no device match
-        SELECT
-            ita.{{ locality_id_col() }},
-            l.locality_campaign_id,
-            l.loopme_campaign_id,
-            ROW_NUMBER() OVER (
-                PARTITION BY ita.{{ locality_id_col() }}, l.locality_campaign_id
-                ORDER BY l.loopme_campaign_id
-            ) AS rn
-        FROM {{ source('locality_poc_share_silver', 'loopme') }} l
-        INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
-            ON l.ip = ita.IDENTITY AND ita.ID_TYPE = 'ip'
-        WHERE NOT EXISTS (
-            SELECT 1 FROM {{ ref('identity_to_locality_deduped') }} ita_dev
-            WHERE l.maid = ita_dev.IDENTITY AND ita_dev.ID_TYPE != 'ip'
+            -- IP fallback — only for loopme rows with no device match
+            SELECT
+                ita.{{ locality_id_col() }},
+                l.locality_campaign_id,
+                l.loopme_campaign_id,
+                2 AS match_priority
+            FROM {{ source('locality_poc_share_silver', 'loopme') }} l
+            INNER JOIN {{ ref('identity_to_locality_deduped') }} ita
+                ON l.ip = ita.IDENTITY AND ita.ID_TYPE = 'ip'
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {{ ref('identity_to_locality_deduped') }} ita_dev
+                WHERE l.maid = ita_dev.IDENTITY AND ita_dev.ID_TYPE != 'ip'
+            )
         )
     )
     WHERE rn = 1
