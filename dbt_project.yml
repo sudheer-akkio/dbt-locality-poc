@@ -48,19 +48,27 @@ models:
       +materialized: view
       +tags:
         - intermediate
+        - nightly
       # int_datonics_ids_matched disabled - 609B rows too large for standard processing
 
     locality:
+      # Default cadence: nightly. Spine + derivatives override to 'monthly'.
+      # Datonics sub-models add 'weekly' (full-refresh on Sunday).
+      # Cadence selectors:
+      #   nightly Mon-Sat:  --select tag:nightly --exclude tag:monthly --exclude tag:expensive
+      #   weekly  Sunday:   --select tag:nightly --exclude tag:monthly  (with --full-refresh)
+      #   monthly 20th:     --select tag:monthly
       +tags:
         - locality
         - locality_poc
-        - monthly
+        - nightly
       # Output catalog.schema controlled by profile target:
-      #   staging → akkio.locality_poc
-      #   prod    → locality_dev.akkio
+      #   staging → locality_dev.akkio
+      #   prod    → locality_prod.akkio
       locality_attributes_latest:
         +materialized: table
         +alias: LOCALITY_ATTRIBUTES_LATEST
+        +tags: ['monthly']
       identity_to_locality_deduped:
         +materialized: table  # MUST be table - reused 3+ times downstream
         +alias: IDENTITY_TO_LOCALITY_DEDUPED
@@ -75,20 +83,30 @@ models:
         +materialized: incremental
         +partition_by: exposure_date
         +alias: LOCALITY_CAMPAIGN_EXPOSURE
+        # Watermark + merge is the right cadence — never auto-full-refresh,
+        # even when the Sunday job passes --full-refresh for the Datonics 4.
+        +full_refresh: false
         # NOTE: Cannot use clustering on partitioned tables in Databricks
         # Partitioning by exposure_date provides the performance optimization
       onspot_audience_data:
-        +materialized: incremental
-        +unique_key: ['device_id', 'audience_name']
         +alias: ONSPOT_AUDIENCE_DATA
         +post_hook:
           - "alter table {{ this }} cluster by (device_id)"
+      datonics_segments:
+        +tags: ['weekly']
       v_agg_locality_ind:
         +materialized: table
         +alias: V_AGG_LOCALITY_IND
+        +tags: ['monthly']
       v_agg_locality_hh:
         +materialized: table
         +alias: V_AGG_LOCALITY_HH
+        +tags: ['monthly']
+      v_agg_locality_ind_cpg:
+        +tags: ['monthly']
+      v_agg_locality_ind_media:
+        +tags: ['monthly']
       v_locality_attributes_latest:
         +materialized: view
         +alias: V_LOCALITY_ATTRIBUTES_LATEST
+        +tags: ['monthly']
